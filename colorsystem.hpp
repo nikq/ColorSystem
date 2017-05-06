@@ -245,6 +245,7 @@ class OTF
         OTF_LINEAR,
         OTF_GAMMA, // simplest gamma
         OTF_SRGB,
+        OTF_BT709,
         OTF_ST2084,
         // OTF_HLG // Hybrid-log-gamma
     } TYPE;
@@ -296,6 +297,15 @@ class OTF
         float C = nit / 100.f;
         return (C < 0.04045f) ? C / 12.92f : powf((C + 0.055f) / 1.055f, 2.4f);
     }
+    static const float Y_to_BT709(const float &C) // returns nits(cd/m^2),0-100
+    {
+        return (C < 0.018f) ? C * 4.50f : (1.099f * powf(C, 0.45f) - 0.099f) * 100.f;
+    }
+    static const float BT709_to_Y(const float &nit) // returns pixel range[0-1], input should be 0-100(cd/m^2)
+    {
+        float C = nit / 100.f;
+        return (C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f/0.45f);
+    }
 
     static const Tristimulus toScreen(TYPE type, const Tristimulus &scene, const float g = 1.f)
     {
@@ -312,6 +322,14 @@ class OTF
                 Y_to_sRGB(scene[0]),
                 Y_to_sRGB(scene[1]),
                 Y_to_sRGB(scene[2]));
+        }
+        break;
+        case OTF_BT709:
+        {
+            return Tristimulus(
+                Y_to_BT709(scene[0]),
+                Y_to_BT709(scene[1]),
+                Y_to_BT709(scene[2]));
         }
         break;
         case OTF_ST2084:
@@ -342,6 +360,14 @@ class OTF
                 sRGB_to_Y(screen[0]),
                 sRGB_to_Y(screen[1]),
                 sRGB_to_Y(screen[2]));
+        }
+        break;
+        case OTF_BT709:
+        {
+            return Tristimulus(
+                BT709_to_Y(screen[0]),
+                BT709_to_Y(screen[1]),
+                BT709_to_Y(screen[2]));
         }
         break;
         case OTF_ST2084:
