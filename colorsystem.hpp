@@ -159,12 +159,38 @@ class Tristimulus
     }
     constexpr Tristimulus() : v_(0, 0, 0) { ; }
     constexpr Tristimulus(const Vector3 &v) : v_(v) { ; }
+    constexpr Tristimulus(const float &v) : v_(v, v, v) { ; }
 
     constexpr float operator[](const int &i) const
     {
         return v_[i];
     }
     constexpr const Vector3 &vec3(void) const { return v_; }
+    constexpr const float mini(const float &a, const float &b) const { return (a < b) ? a : b; }
+    constexpr const float maxi(const float &a, const float &b) const { return (a > b) ? a : b; }
+    constexpr Tristimulus min(const Tristimulus &a, const Tristimulus &b) const
+    {
+        return Tristimulus(mini(a[0], b[0]), mini(a[1], b[1]), mini(a[2], b[2]));
+    }
+    constexpr Tristimulus max(const Tristimulus &a, const Tristimulus &b) const
+    {
+        return Tristimulus(maxi(a[0], b[0]), maxi(a[1], b[1]), maxi(a[2], b[2]));
+    }
+    constexpr Tristimulus min(const Tristimulus &a) const { return min(*this, a); }
+    constexpr Tristimulus max(const Tristimulus &a) const { return max(*this, a); }
+    constexpr Tristimulus clip(const float &l, const float &h) const
+    {
+        return max(min(*this, Tristimulus(h)), Tristimulus(l));
+    }
+    constexpr Tristimulus positive() const
+    {
+        return max(*this, Tristimulus(0.f));
+    }
+    constexpr bool isNegative(const float &a) const { return (a < 0.f) ? true : false; }
+    constexpr bool hasNegative(void) const
+    {
+        return isNegative(v_[0]) || isNegative(v_[1]) || isNegative(v_[2]);
+    }
 };
 
 class Gamut
@@ -220,12 +246,116 @@ class OTF
         OTF_GAMMA, // simplest gamma
         OTF_SRGB,
         OTF_ST2084,
-        OTF_HLG // Hybrid-log-gamma
+        // OTF_HLG // Hybrid-log-gamma
     } TYPE;
-    // TODO
-    OTF()
+
+    static float gamma(const float &v, const float &g) { return powf(v, 1.f / g); }
+    static float degamma(const float &v, const float &g) { return powf(v, g); }
+    static const float ST2084_to_Y(const float &pixel) // pixel should be 0-1
     {
-        ;
+        const float pq_m1 = 0.1593017578125; // ( 2610.0 / 4096.0 ) / 4.0;
+        const float pq_m2 = 78.84375;        // ( 2523.0 / 4096.0 ) * 128.0;
+        const float pq_c1 = 0.8359375;       // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
+        const float pq_c2 = 18.8515625;      // ( 2413.0 / 4096.0 ) * 32.0;
+        const float pq_c3 = 18.6875;         // ( 2392.0 / 4096.0 ) * 32.0;
+        const float pq_C = 10000.0;
+
+        // Note that this does NOT handle any of the signal range
+        // considerations from 2084 - this assumes full range (0 - 1)
+        float Np = powf(pixel, 1.0 / pq_m2);
+        float L = Np - pq_c1;
+        if (L < 0.0)
+            L = 0.0;
+        L = L / (pq_c2 - pq_c3 * Np);
+        L = pow(L, 1.0 / pq_m1);
+        return L * pq_C; // returns cd/m^2
+    }
+    static const float Y_to_ST2084(const float &nit) // nit should be 0-10000(cd/m^2)
+    {
+        const float pq_m1 = 0.1593017578125; // ( 2610.0 / 4096.0 ) / 4.0;
+        const float pq_m2 = 78.84375;        // ( 2523.0 / 4096.0 ) * 128.0;
+        const float pq_c1 = 0.8359375;       // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
+        const float pq_c2 = 18.8515625;      // ( 2413.0 / 4096.0 ) * 32.0;
+        const float pq_c3 = 18.6875;         // ( 2392.0 / 4096.0 ) * 32.0;
+        const float pq_C = 10000.0;
+
+        // Note that this does NOT handle any of the signal range
+        // considerations from 2084 - this returns full range (0 - 1)
+        float L = nit / pq_C;
+        float Lm = powf(L, pq_m1);
+        float N = (pq_c1 + pq_c2 * Lm) / (1.0 + pq_c3 * Lm);
+        N = powf(N, pq_m2);
+        return N;
+    }
+    static const float Y_to_sRGB(const float &C) // returns nits(cd/m^2),0-100
+    {
+        return (C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f) * 100.f;
+    }
+    static const float sRGB_to_Y(const float &nit) // returns pixel range[0-1], input should be 0-100(cd/m^2)
+    {
+        float C = nit / 100.f;
+        return (C < 0.04045f) ? C / 12.92f : powf((C + 0.055f) / 1.055f, 2.4f);
+    }
+
+    static const Tristimulus toScreen(TYPE type, const Tristimulus &scene, const float g = 1.f)
+    {
+        switch (type)
+        {
+        case OTF_GAMMA:
+        {
+            return Tristimulus(gamma(scene[0], g), gamma(scene[1], g), gamma(scene[2], g));
+        }
+        break;
+        case OTF_SRGB:
+        {
+            return Tristimulus(
+                Y_to_sRGB(scene[0]),
+                Y_to_sRGB(scene[1]),
+                Y_to_sRGB(scene[2]));
+        }
+        break;
+        case OTF_ST2084:
+        {
+            return Tristimulus(
+                Y_to_ST2084(scene[0]),
+                Y_to_ST2084(scene[1]),
+                Y_to_ST2084(scene[2]));
+        }
+        break;
+        case OTF_LINEAR:
+        default:
+            return scene;
+        }
+    }
+    static const Tristimulus toScene(TYPE type, const Tristimulus &screen, const float g = 1.f)
+    {
+        switch (type)
+        {
+        case OTF_GAMMA:
+        {
+            return Tristimulus(degamma(screen[0], g), degamma(screen[1], g), degamma(screen[2], g));
+        }
+        break;
+        case OTF_SRGB:
+        {
+            return Tristimulus(
+                sRGB_to_Y(screen[0]),
+                sRGB_to_Y(screen[1]),
+                sRGB_to_Y(screen[2]));
+        }
+        break;
+        case OTF_ST2084:
+        {
+            return Tristimulus(
+                ST2084_to_Y(screen[0]),
+                ST2084_to_Y(screen[1]),
+                ST2084_to_Y(screen[2]));
+        }
+        break;
+        case OTF_LINEAR:
+        default:
+            return screen;
+        }
     }
 };
 
@@ -262,8 +392,7 @@ class Delta
     }
 };
 
-void
-dump(const Matrix3 &m)
+void dump(const Matrix3 &m)
 {
     printf("-------\n");
     printf("%f,%f,%f\n", m[0], m[1], m[2]);
