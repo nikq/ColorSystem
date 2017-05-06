@@ -160,11 +160,24 @@ class Tristimulus
     constexpr Tristimulus() : v_(0, 0, 0) { ; }
     constexpr Tristimulus(const Vector3 &v) : v_(v) { ; }
     constexpr Tristimulus(const float &v) : v_(v, v, v) { ; }
-
     constexpr float operator[](const int &i) const
     {
         return v_[i];
     }
+
+    constexpr Tristimulus scale(const Tristimulus &t, const float &s) const
+    {
+        return Tristimulus(t[0] * s, t[1] * s, t[2] * s);
+    }
+    constexpr Tristimulus scale(const float &s) const
+    {
+        return scale(*this, s);
+    }
+    constexpr Tristimulus operator*(const float &s) const
+    {
+        return scale(s);
+    }
+
     constexpr const Vector3 &vec3(void) const { return v_; }
     constexpr const float mini(const float &a, const float &b) const { return (a < b) ? a : b; }
     constexpr const float maxi(const float &a, const float &b) const { return (a > b) ? a : b; }
@@ -290,7 +303,7 @@ class OTF
     }
     static const float Y_to_sRGB(const float &nits) // returns signal, 0-1, input nits [0-100]
     {
-        const float C = nits/100.f;
+        const float C = nits / 100.f;
         return (C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f);
     }
     static const float sRGB_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
@@ -299,12 +312,12 @@ class OTF
     }
     static const float Y_to_BT709(const float &nits) // returns signal, 0-1, input nits [0-100]
     {
-        const float C = nits/100.f;
+        const float C = nits / 100.f;
         return (C < 0.018f) ? C * 4.50f : (1.099f * powf(C, 0.45f) - 0.099f);
     }
     static const float BT709_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
     {
-        return (C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f/0.45f);
+        return (C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f / 0.45f);
     }
 
     static const Tristimulus toScreen(TYPE type, const Tristimulus &scene, const float g = 1.f)
