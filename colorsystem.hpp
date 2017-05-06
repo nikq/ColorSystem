@@ -242,11 +242,11 @@ class OTF
 {
   public:
     typedef enum {
-        OTF_LINEAR,
-        OTF_GAMMA, // simplest gamma
-        OTF_SRGB,
-        OTF_BT709,
-        OTF_ST2084,
+        LINEAR,
+        GAMMA, // simplest gamma
+        SRGB,
+        BT709,
+        ST2084,
         // OTF_HLG // Hybrid-log-gamma
     } TYPE;
 
@@ -288,22 +288,22 @@ class OTF
         N = powf(N, pq_m2);
         return N;
     }
-    static const float Y_to_sRGB(const float &C) // returns nits(cd/m^2),0-100
+    static const float Y_to_sRGB(const float &nits) // returns signal, 0-1, input nits [0-100]
     {
-        return (C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f) * 100.f;
+        const float C = nits/100.f;
+        return (C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f);
     }
-    static const float sRGB_to_Y(const float &nit) // returns pixel range[0-1], input should be 0-100(cd/m^2)
+    static const float sRGB_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
     {
-        float C = nit / 100.f;
         return (C < 0.04045f) ? C / 12.92f : powf((C + 0.055f) / 1.055f, 2.4f);
     }
-    static const float Y_to_BT709(const float &C) // returns nits(cd/m^2),0-100
+    static const float Y_to_BT709(const float &nits) // returns signal, 0-1, input nits [0-100]
     {
-        return (C < 0.018f) ? C * 4.50f : (1.099f * powf(C, 0.45f) - 0.099f) * 100.f;
+        const float C = nits/100.f;
+        return (C < 0.018f) ? C * 4.50f : (1.099f * powf(C, 0.45f) - 0.099f);
     }
-    static const float BT709_to_Y(const float &nit) // returns pixel range[0-1], input should be 0-100(cd/m^2)
+    static const float BT709_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
     {
-        float C = nit / 100.f;
         return (C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f/0.45f);
     }
 
@@ -311,12 +311,12 @@ class OTF
     {
         switch (type)
         {
-        case OTF_GAMMA:
+        case GAMMA:
         {
             return Tristimulus(gamma(scene[0], g), gamma(scene[1], g), gamma(scene[2], g));
         }
         break;
-        case OTF_SRGB:
+        case SRGB:
         {
             return Tristimulus(
                 Y_to_sRGB(scene[0]),
@@ -324,7 +324,7 @@ class OTF
                 Y_to_sRGB(scene[2]));
         }
         break;
-        case OTF_BT709:
+        case BT709:
         {
             return Tristimulus(
                 Y_to_BT709(scene[0]),
@@ -332,7 +332,7 @@ class OTF
                 Y_to_BT709(scene[2]));
         }
         break;
-        case OTF_ST2084:
+        case ST2084:
         {
             return Tristimulus(
                 Y_to_ST2084(scene[0]),
@@ -340,7 +340,7 @@ class OTF
                 Y_to_ST2084(scene[2]));
         }
         break;
-        case OTF_LINEAR:
+        case LINEAR:
         default:
             return scene;
         }
@@ -349,12 +349,12 @@ class OTF
     {
         switch (type)
         {
-        case OTF_GAMMA:
+        case GAMMA:
         {
             return Tristimulus(degamma(screen[0], g), degamma(screen[1], g), degamma(screen[2], g));
         }
         break;
-        case OTF_SRGB:
+        case SRGB:
         {
             return Tristimulus(
                 sRGB_to_Y(screen[0]),
@@ -362,7 +362,7 @@ class OTF
                 sRGB_to_Y(screen[2]));
         }
         break;
-        case OTF_BT709:
+        case BT709:
         {
             return Tristimulus(
                 BT709_to_Y(screen[0]),
@@ -370,7 +370,7 @@ class OTF
                 BT709_to_Y(screen[2]));
         }
         break;
-        case OTF_ST2084:
+        case ST2084:
         {
             return Tristimulus(
                 ST2084_to_Y(screen[0]),
@@ -378,7 +378,7 @@ class OTF
                 ST2084_to_Y(screen[2]));
         }
         break;
-        case OTF_LINEAR:
+        case LINEAR:
         default:
             return screen;
         }
