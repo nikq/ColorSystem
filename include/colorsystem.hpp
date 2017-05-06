@@ -32,9 +32,10 @@ class Matrix3
   public:
     typedef std::array<float, 9> matrix;
     matrix m_;
-
-    constexpr int M(const int x, const int y) const { return x + y * 3; }
-    constexpr int I(const int y, const int x) const { return ((x - 1) + (y - 1) * 3); }
+private:
+    static constexpr int M(const int x, const int y) { return x + y * 3; }
+    static constexpr int I(const int y, const int x) { return ((x - 1) + (y - 1) * 3); }
+public:
     constexpr Matrix3(
         const float &a00, const float &a01, const float &a02,
         const float &a10, const float &a11, const float &a12,
@@ -50,7 +51,8 @@ class Matrix3
     {
         return m_[i];
     }
-    constexpr Matrix3 mul(const Matrix3 &a, const Matrix3 &b) const
+
+    static constexpr Matrix3 mul(const Matrix3 &a, const Matrix3 &b)
     {
         return Matrix3(
             a[M(0, 0)] * b[M(0, 0)] + a[M(1, 0)] * b[M(0, 1)] + a[M(2, 0)] * b[M(0, 2)],
@@ -70,7 +72,7 @@ class Matrix3
         return mul(*this, b);
     }
 
-    constexpr Vector3 apply(const Matrix3 &m, const Vector3 &v) const
+    static constexpr Vector3 apply(const Matrix3 &m, const Vector3 &v)
     {
         return Vector3(
             m[M(0, 0)] * v[0] + m[M(1, 0)] * v[1] + m[M(2, 0)] * v[2],
@@ -82,7 +84,7 @@ class Matrix3
         return apply(*this, v);
     }
 
-    constexpr float det(const Matrix3 &m) const
+    static constexpr float det(const Matrix3 &m)
     {
         return m[I(1, 1)] * m[I(2, 2)] * m[I(3, 3)] +
                m[I(2, 1)] * m[I(3, 2)] * m[I(1, 3)] +
@@ -96,7 +98,7 @@ class Matrix3
         return det(*this);
     }
 
-    constexpr Matrix3 mul(const Matrix3 &m, const float &a) const
+    static constexpr Matrix3 mul(const Matrix3 &m, const float &a)
     {
         return Matrix3(
             m[0] * a, m[1] * a, m[2] * a,
@@ -107,7 +109,7 @@ class Matrix3
     {
         return mul(*this, a);
     }
-    constexpr Matrix3 div(const Matrix3 &m, const float &a) const
+    static constexpr Matrix3 div(const Matrix3 &m, const float &a)
     {
         return mul(m, 1.f / a);
     }
@@ -116,7 +118,7 @@ class Matrix3
         return div(*this, a);
     }
 
-    constexpr Matrix3 add(const Matrix3 &a, const Matrix3 &b) const
+    static constexpr Matrix3 add(const Matrix3 &a, const Matrix3 &b)
     {
         return Matrix3(
             a[0] + b[0], a[1] + b[1], a[2] + b[2],
@@ -128,19 +130,19 @@ class Matrix3
         return add(*this, b);
     }
 
-    constexpr Matrix3 invert(const Matrix3 &a) const
+    static constexpr Matrix3 invert(const Matrix3 &a)
     {
         return mul(
             Matrix3(
-                (m_[I(2, 2)] * m_[I(3, 3)] - m_[I(2, 3)] * m_[I(3, 2)]),
-                (m_[I(1, 3)] * m_[I(3, 2)] - m_[I(1, 2)] * m_[I(3, 3)]),
-                (m_[I(1, 2)] * m_[I(2, 3)] - m_[I(1, 3)] * m_[I(2, 2)]),
-                (m_[I(2, 3)] * m_[I(3, 1)] - m_[I(2, 1)] * m_[I(3, 3)]),
-                (m_[I(1, 1)] * m_[I(3, 3)] - m_[I(1, 3)] * m_[I(3, 1)]),
-                (m_[I(1, 3)] * m_[I(2, 1)] - m_[I(1, 1)] * m_[I(2, 3)]),
-                (m_[I(2, 1)] * m_[I(3, 2)] - m_[I(2, 2)] * m_[I(3, 1)]),
-                (m_[I(1, 2)] * m_[I(3, 1)] - m_[I(1, 1)] * m_[I(3, 2)]),
-                (m_[I(1, 1)] * m_[I(2, 2)] - m_[I(1, 2)] * m_[I(2, 1)])),
+                (a.m_[I(2, 2)] * a.m_[I(3, 3)] - a.m_[I(2, 3)] * a.m_[I(3, 2)]),
+                (a.m_[I(1, 3)] * a.m_[I(3, 2)] - a.m_[I(1, 2)] * a.m_[I(3, 3)]),
+                (a.m_[I(1, 2)] * a.m_[I(2, 3)] - a.m_[I(1, 3)] * a.m_[I(2, 2)]),
+                (a.m_[I(2, 3)] * a.m_[I(3, 1)] - a.m_[I(2, 1)] * a.m_[I(3, 3)]),
+                (a.m_[I(1, 1)] * a.m_[I(3, 3)] - a.m_[I(1, 3)] * a.m_[I(3, 1)]),
+                (a.m_[I(1, 3)] * a.m_[I(2, 1)] - a.m_[I(1, 1)] * a.m_[I(2, 3)]),
+                (a.m_[I(2, 1)] * a.m_[I(3, 2)] - a.m_[I(2, 2)] * a.m_[I(3, 1)]),
+                (a.m_[I(1, 2)] * a.m_[I(3, 1)] - a.m_[I(1, 1)] * a.m_[I(3, 2)]),
+                (a.m_[I(1, 1)] * a.m_[I(2, 2)] - a.m_[I(1, 2)] * a.m_[I(2, 1)])),
             1.f / det(a));
     }
     constexpr Matrix3 invert(void) const
@@ -431,14 +433,15 @@ class Delta
     }
 };
 
-void dump(const Matrix3 &m)
+inline void dump (const Matrix3 &m)
 {
     printf("-------\n");
     printf("%f,%f,%f\n", m[0], m[1], m[2]);
     printf("%f,%f,%f\n", m[3], m[4], m[5]);
     printf("%f,%f,%f\n", m[6], m[7], m[8]);
 }
-void dump(const Vector3 &v)
+
+inline void dump(const Vector3 &v)
 {
     printf("v-------\n");
     printf("%f,%f,%f\n", v[0], v[1], v[2]);
