@@ -167,7 +167,7 @@ class Tristimulus
         return v_[i];
     }
 
-    constexpr Tristimulus scale(const Tristimulus &t, const float &s) const
+    static constexpr Tristimulus scale(const Tristimulus &t, const float &s)
     {
         return Tristimulus(t[0] * s, t[1] * s, t[2] * s);
     }
@@ -181,13 +181,13 @@ class Tristimulus
     }
 
     constexpr const Vector3 &vec3(void) const { return v_; }
-    constexpr const float mini(const float &a, const float &b) const { return (a < b) ? a : b; }
-    constexpr const float maxi(const float &a, const float &b) const { return (a > b) ? a : b; }
-    constexpr Tristimulus min(const Tristimulus &a, const Tristimulus &b) const
+    static constexpr const float mini(const float &a, const float &b) { return (a < b) ? a : b; }
+    static constexpr const float maxi(const float &a, const float &b) { return (a > b) ? a : b; }
+    static constexpr Tristimulus min(const Tristimulus &a, const Tristimulus &b)
     {
         return Tristimulus(mini(a[0], b[0]), mini(a[1], b[1]), mini(a[2], b[2]));
     }
-    constexpr Tristimulus max(const Tristimulus &a, const Tristimulus &b) const
+    static constexpr Tristimulus max(const Tristimulus &a, const Tristimulus &b)
     {
         return Tristimulus(maxi(a[0], b[0]), maxi(a[1], b[1]), maxi(a[2], b[2]));
     }
@@ -201,8 +201,8 @@ class Tristimulus
     {
         return max(*this, Tristimulus(0.f));
     }
-    constexpr bool isNegative(const float &a) const { return (a < 0.f) ? true : false; }
-    constexpr bool hasNegative(void) const
+    constexpr bool isNegative(const float &a) const { return (a < 0.f) ; }
+    constexpr bool hasNegative() const
     {
         return isNegative(v_[0]) || isNegative(v_[1]) || isNegative(v_[2]);
     }
@@ -214,29 +214,30 @@ class Gamut
     Matrix3 toXYZ_;
     Matrix3 fromXYZ_;
 
-    constexpr float z_from_xy(const float &x, const float &y) const { return 1 - x - y; }
-    constexpr float X_from_xyY(const float &x, const float &y, const float &Y) const { return x * Y / y; }
-    constexpr float Y_from_xyY(const float &x, const float &y, const float &Y) const { return Y; }
-    constexpr float Z_from_xyY(const float &x, const float &y, const float &Y) const { return z_from_xy(x, y) * Y / y; }
-    constexpr Matrix3 primMat(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB) const
+    static constexpr float z_from_xy(const float &x, const float &y) { return 1 - x - y; }
+    static constexpr float X_from_xyY(const float &x, const float &y, const float &Y) { return x * Y / y; }
+    static constexpr float Y_from_xyY(const float &x, const float &y, const float &Y) { return Y; }
+    static constexpr float Z_from_xyY(const float &x, const float &y, const float &Y) { return z_from_xy(x, y) * Y / y; }
+    static constexpr Matrix3 primMat(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB)
     {
         return Matrix3(xR, xG, xB, yR, yG, yB, z_from_xy(xR, yR), z_from_xy(xG, yG), z_from_xy(xB, yB));
     }
-    constexpr Matrix3 diag(const Vector3 &v) const
+    static constexpr Matrix3 diag(const Vector3 &v)
     {
         return Matrix3(v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]);
     }
-    constexpr Matrix3 mulDiag(const Matrix3 &m, const Vector3 &v) const
+    static constexpr Matrix3 mulDiag(const Matrix3 &m, const Vector3 &v)
     {
         return m.mul(diag(m.invert().apply(v)));
     }
-    constexpr Matrix3 fromPrimaries(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB, const float &xW, const float &yW) const
+    static constexpr Matrix3 fromPrimaries(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB, const float &xW, const float &yW)
     {
         return mulDiag(primMat(xR, yR, xG, yG, xB, yB), Vector3(X_from_xyY(xW, yW, 1.f), Y_from_xyY(xW, yW, 1.f), Z_from_xyY(xW, yW, 1.f)));
     }
 
     constexpr Gamut(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB, const float &xW, const float &yW)
-        : toXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW)), fromXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW).invert())
+            : toXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW))
+            , fromXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW).invert())
     {
         ;
     }
