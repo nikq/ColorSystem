@@ -54,3 +54,13 @@ TEST_CASE ("fromXYZ", "[XYZ]") {
         REQUIRE (v [2] == Approx (0.910257).epsilon (epsilon)) ;
     }
 }
+
+TEST_CASE ("BT709") {
+    ColorSystem::Gamut       adobeRGB (0.64, 0.33, 0.21, 0.71, 0.15, 0.06, 0.3127, 0.3290);
+    ColorSystem::Tristimulus white (1, 1, 1);
+    auto const &monitor = ColorSystem::OTF::toScreen( ColorSystem::OTF::BT709, adobeRGB.fromXYZ( white )*100.f) ;
+    // 1.062991,0.974048,0.954468
+    REQUIRE (monitor [0] == Approx (1.062991).epsilon (epsilon)) ;
+    REQUIRE (monitor [1] == Approx (0.974048).epsilon (epsilon)) ;
+    REQUIRE (monitor [2] == Approx (0.954468).epsilon (epsilon)) ;
+}
