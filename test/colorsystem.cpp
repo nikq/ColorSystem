@@ -13,17 +13,22 @@ const float epsilon = 0.000001f;
 
 TEST_CASE("illuminants")
 {
+    const float                    EPS     = 1e-4f;
     const ColorSystem::Tristimulus d65_Yxy = ColorSystem::Illuminant_D65.toYxy();
-    REQUIRE(d65_Yxy[1] == Approx(0.3127f).epsilon(epsilon));
-    REQUIRE(d65_Yxy[2] == Approx(0.3290f).epsilon(epsilon));
+    REQUIRE(d65_Yxy[1] == Approx(0.3127f).epsilon(EPS));
+    REQUIRE(d65_Yxy[2] == Approx(0.3290f).epsilon(EPS));
 
     const ColorSystem::Tristimulus E_Yxy = ColorSystem::Illuminant_E.toYxy();
-    REQUIRE(E_Yxy[1] == Approx(1.f/3.f).epsilon(epsilon));
-    REQUIRE(E_Yxy[2] == Approx(1.f/3.f).epsilon(epsilon));
-    
+    REQUIRE(E_Yxy[1] == Approx(1.f / 3.f).epsilon(EPS));
+    REQUIRE(E_Yxy[2] == Approx(1.f / 3.f).epsilon(EPS));
+
     const ColorSystem::Tristimulus d50_Yxy = ColorSystem::Illuminant_D50.toYxy();
-    REQUIRE(d50_Yxy[1] == Approx(0.345703f).epsilon(epsilon));
-    REQUIRE(d50_Yxy[2] == Approx(0.358539f).epsilon(epsilon));
+    REQUIRE(d50_Yxy[1] == Approx(0.345703f).epsilon(EPS));
+    REQUIRE(d50_Yxy[2] == Approx(0.358539f).epsilon(EPS));
+
+    const ColorSystem::Tristimulus d60_Yxy = ColorSystem::Illuminant_D60.toYxy();
+    REQUIRE(d60_Yxy[1] == Approx(0.32168f).epsilon(EPS));
+    REQUIRE(d60_Yxy[2] == Approx(0.33767f).epsilon(EPS));
 }
 
 TEST_CASE("toXYZ", "[XYZ]")
@@ -133,6 +138,35 @@ TEST_CASE("ACES2065")
         REQUIRE_THAT(ACES2065_from_XYZ, IsApproxEquals(expected, EPS));
     }
 }
+
 TEST_CASE("CIELAB")
 {
+    SECTION("toLAB")
+    {
+        const ColorSystem::Tristimulus XYZ1(0.4f, 0.5f, 0.6f);
+        const ColorSystem::Tristimulus XYZ2(0.7f, 0.6f, 0.5f);
+        const float                    EPS  = 1e-1f; // float is low precision... maybe?
+        auto const &                   LAB1 = XYZ1.toCIELAB();
+        auto const &                   LAB2 = XYZ2.toCIELAB();
+        REQUIRE_THAT(LAB1, IsApproxEquals(ColorSystem::Tristimulus{76.0693f, -23.9455f, -21.1024f}, EPS));
+        REQUIRE_THAT(LAB2, IsApproxEquals(ColorSystem::Tristimulus{81.8382f, 27.6605f, -0.5517f}, EPS));
+    }
+    SECTION("delta")
+    {
+        //http://qiita.com/tibigame/items/40ab217c863a20cdb264
+        const float EPS = 1e-6f;
+        const ColorSystem::Tristimulus LAB1(50.f, 2.6772f, -79.7751f);
+        const ColorSystem::Tristimulus LAB2(50.f, 0.0000f, -82.7485f);
+        const float de00 = ColorSystem::Delta::E00(LAB1,LAB2);
+        REQUIRE(de00 == Approx(2.0424596801565738f).epsilon(EPS));
+    }
+    SECTION("delta2")
+    {
+        const float EPS = 1e-6f;
+        const float de00 = ColorSystem::Delta::E00(
+            ColorSystem::Tristimulus(50.f, 3.1571f, -77.2803f),
+            ColorSystem::Tristimulus(50.f, 0.0000f, -82.7485f)
+        );
+        REQUIRE(de00 == Approx(2.8615f).epsilon(EPS));
+    }
 }
