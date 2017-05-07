@@ -35,5 +35,6 @@ CMakeFiles
 # logs
 *.log
 
+CMake
 CMakeCache.txt
 .vscode
