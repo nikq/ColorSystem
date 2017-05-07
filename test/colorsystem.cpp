@@ -57,7 +57,7 @@ TEST_CASE("fromXYZ", "[XYZ]")
     {
         ColorSystem::Tristimulus white(1, 1, 1);
         auto const &             v = adobeRGB.fromXYZ(white).vec3();
-        REQUIRE_THAT(v, IsApproxEquals(ColorSystem::Vector3{1.131850, 0.948279, 0.910257}, epsilon));
+        REQUIRE_THAT(v, IsApproxEquals(ColorSystem::Vector3{1.131850f, 0.948279f, 0.910257f}, epsilon));
     }
 }
 
@@ -67,7 +67,7 @@ TEST_CASE("BT709")
     ColorSystem::Tristimulus white(1, 1, 1);
     auto const &             monitor = ColorSystem::OTF::toScreen(ColorSystem::OTF::BT709, adobeRGB.fromXYZ(white) * 100.f);
     // 1.062991,0.974048,0.954468
-    REQUIRE_THAT(monitor, IsApproxEquals(ColorSystem::Tristimulus{1.062991, 0.974048, 0.954468}, epsilon));
+    REQUIRE_THAT(monitor, IsApproxEquals(ColorSystem::Tristimulus{1.062991f, 0.974048f, 0.954468f}, epsilon));
 }
 
 TEST_CASE("toYxy")
