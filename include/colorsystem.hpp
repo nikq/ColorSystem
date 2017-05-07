@@ -167,6 +167,9 @@ class Tristimulus
     {
         return v_[i];
     }
+    constexpr float a() const { return v_[0]; }
+    constexpr float b() const { return v_[1]; }
+    constexpr float c() const { return v_[2]; }
 
     static constexpr Tristimulus scale(const Tristimulus &t, const float &s)
     {
@@ -213,9 +216,12 @@ class Tristimulus
     static constexpr bool hasNegative(const Tristimulus &t) { return t.hasNegative(); }
 
     static constexpr float z_from_xy(const float &x, const float &y) { return 1 - x - y; }
-    static constexpr float X_from_Yxy(const float &Y, const float &x, const float &y) { return x * Y / y; }
-    static constexpr float Y_from_Yxy(const float &Y, const float &x, const float &y) { return Y; }
-    static constexpr float Z_from_Yxy(const float &Y, const float &x, const float &y) { return z_from_xy(x, y) * Y / y; }
+    static constexpr float X_from_Yxy(const float &Y, const float &x, const float &y) { return (Y < 1e-8f) ? 0.f : x * Y / y; }
+    static constexpr float Y_from_Yxy(const float &Y, const float &x, const float &y) { return (Y < 1e-8f) ? 0.f : Y; }
+    static constexpr float Z_from_Yxy(const float &Y, const float &x, const float &y) { return (Y < 1e-8f) ? 0.f : z_from_xy(x, y) * Y / y; }
+    static constexpr float Y_from_XYZ(const float &x, const float &y, const float &z) { return (y < 1e-8f) ? 0.f : y; }
+    static constexpr float x_from_XYZ(const float &x, const float &y, const float &z) { return (y < 1e-8f) ? 0.3127f : x / (x + y + z); }
+    static constexpr float y_from_XYZ(const float &x, const float &y, const float &z) { return (y < 1e-8f) ? 0.3290f : y / (x + y + z); }
     static constexpr Tristimulus fromYxy(const float &Y, const float &x, const float &y)
     {
         return Tristimulus(
@@ -223,6 +229,17 @@ class Tristimulus
             Y_from_Yxy(Y, x, y),
             Z_from_Yxy(Y, x, y));
     }
+    static constexpr Tristimulus fromYxy(const Tristimulus &Yxy) { return fromYxy(Yxy[0], Yxy[1], Yxy[2]); }
+    constexpr Tristimulus fromYxy(void) const { return fromYxy(*this); }
+    static constexpr Tristimulus toYxy(const float &X, const float &Y, const float &Z)
+    {
+        return Tristimulus(
+            Y_from_XYZ(X, Y, Z),
+            x_from_XYZ(X, Y, Z),
+            y_from_XYZ(X, Y, Z));
+    }
+    static constexpr Tristimulus toYxy(const Tristimulus &XYZ) { return toYxy(XYZ[0], XYZ[1], XYZ[2]); }
+    constexpr Tristimulus toYxy(void) const { return toYxy(*this); }
 };
 
 class Gamut
