@@ -27,8 +27,8 @@ class Vector3
     constexpr float operator[](const int &i) const { return v_[i]; }
 
     constexpr auto size() const { return v_.size(); }
-    constexpr auto begin() const { return v_.begin(); }
-    constexpr auto end() const { return v_.end(); }
+    auto begin() const { return v_.begin(); }
+    auto end() const { return v_.end(); }
 };
 
 
@@ -155,8 +155,8 @@ class Matrix3
         return invert(*this);
     }
     constexpr auto size() const { return m_.size(); }
-    constexpr auto begin() const { return m_.begin(); }
-    constexpr auto end() const { return m_.end(); }
+    auto begin() const { return m_.begin(); }
+    auto end() const { return m_.end(); }
 };
 
 class Tristimulus
@@ -175,8 +175,8 @@ class Tristimulus
         return v_[i];
     }
     constexpr auto size() const { return v_.size(); }
-    constexpr auto begin() const { return v_.begin(); }
-    constexpr auto end() const { return v_.end(); }
+    auto begin() const { return v_.begin(); }
+    auto end() const { return v_.end(); }
 
     constexpr const Vector3 &    vec3(void) const { return v_; }
     constexpr float              a() const { return v_[0]; }
