@@ -10,6 +10,21 @@ namespace
 const float epsilon = 0.000001f;
 }
 
+TEST_CASE("illuminants")
+{
+    const ColorSystem::Tristimulus d65_Yxy = ColorSystem::Illuminant_D65.toYxy();
+    REQUIRE(d65_Yxy[1] == Approx(0.3127f).epsilon(epsilon));
+    REQUIRE(d65_Yxy[2] == Approx(0.3290f).epsilon(epsilon));
+
+    const ColorSystem::Tristimulus E_Yxy = ColorSystem::Illuminant_E.toYxy();
+    REQUIRE(E_Yxy[1] == Approx(1.f/3.f).epsilon(epsilon));
+    REQUIRE(E_Yxy[2] == Approx(1.f/3.f).epsilon(epsilon));
+    
+    const ColorSystem::Tristimulus d50_Yxy = ColorSystem::Illuminant_D50.toYxy();
+    REQUIRE(d50_Yxy[1] == Approx(0.345703f).epsilon(epsilon));
+    REQUIRE(d50_Yxy[2] == Approx(0.358539f).epsilon(epsilon));
+}
+
 TEST_CASE("toXYZ", "[XYZ]")
 {
     const ColorSystem::Gamut adobeRGB(0.64f, 0.33f, 0.21f, 0.71f, 0.15f, 0.06f, 0.3127f, 0.3290f);
@@ -140,4 +155,8 @@ TEST_CASE("ACES2065")
     REQUIRE( ACES2065_from_XYZ[6] == Approx(0.0000000000f).epsilon(EPS));
     REQUIRE( ACES2065_from_XYZ[7] == Approx(0.0000000000f).epsilon(EPS));
     REQUIRE( ACES2065_from_XYZ[8] == Approx(0.9912520182f).epsilon(EPS));
+}
+
+TEST_CASE("CIELAB")
+{
 }
