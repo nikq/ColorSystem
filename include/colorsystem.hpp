@@ -7,8 +7,8 @@
 //
 
 #include <array>
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 #include <tuple>
 
 #pragma once
@@ -25,12 +25,10 @@ class Vector3
     constexpr float y() const { return v_[1]; }
     constexpr float z() const { return v_[2]; }
     constexpr float operator[](const int &i) const { return v_[i]; }
-
-    constexpr auto size() const { return v_.size(); }
-    auto begin() const { return v_.begin(); }
-    auto end() const { return v_.end(); }
+    constexpr auto                        size() const { return v_.size(); }
+    auto                                  begin() const { return v_.begin(); }
+    auto                                  end() const { return v_.end(); }
 };
-
 
 class Matrix3
 {
@@ -155,8 +153,8 @@ class Matrix3
         return invert(*this);
     }
     constexpr auto size() const { return m_.size(); }
-    auto begin() const { return m_.begin(); }
-    auto end() const { return m_.end(); }
+    auto           begin() const { return m_.begin(); }
+    auto           end() const { return m_.end(); }
 };
 
 class Tristimulus
@@ -174,10 +172,9 @@ class Tristimulus
     {
         return v_[i];
     }
-    constexpr auto size() const { return v_.size(); }
-    auto begin() const { return v_.begin(); }
-    auto end() const { return v_.end(); }
-
+    constexpr auto               size() const { return v_.size(); }
+    auto                         begin() const { return v_.begin(); }
+    auto                         end() const { return v_.end(); }
     constexpr const Vector3 &    vec3(void) const { return v_; }
     constexpr float              a() const { return v_[0]; }
     constexpr float              b() const { return v_[1]; }
@@ -310,14 +307,14 @@ class Tristimulus
     // Lab
     static constexpr float CIELAB_curve(const float &f)
     {
-        const float threshold = 0.008856f;
-        const float K         = 903.3f;
+        const float threshold = 216.f / 24389.0f;
+        const float K         = 24389.0f / 27.0f;
         return (f > 1.f) ? 1.f : ((f > threshold) ? powf(f, 1.f / 3.f) : ((K * f + 16.f) / 116.f));
     }
     static constexpr float CIELAB_decurve(const float &f)
     {
         const float K = (3.f / 29.f) * (3.f / 29.f) * (3.f / 29.f);
-        return (f > 1.f) ? 1.f : ((f > 6.f / 29.f) ? pow(f, 3.f) : (116.f * f - 16.f) * K);
+        return (f > 1.f) ? 1.f : ((f > 6.f / 29.f) ? powf(f, 3.f) : (116.f * f - 16.f) * K);
     }
     static constexpr Tristimulus toCIELAB(const Tristimulus &t, const Tristimulus &white)
     {
@@ -349,12 +346,59 @@ class Tristimulus
 class Delta
 {
   public:
-    Delta()
+    static const float UV(const Tristimulus &a_Yuv, const Tristimulus &b_Yuv) // a, b both are XYZ
     {
-        ;
+        return sqrtf((a_Yuv[1] - b_Yuv[1]) * (a_Yuv[1] - b_Yuv[1]) + (a_Yuv[2] - b_Yuv[2]) * (a_Yuv[2] - b_Yuv[2]));
     }
-    static float deltaAB()
+    static const float E76(const Tristimulus &a_LAB, const Tristimulus &b_LAB)
     {
+        return sqrtf(
+            (a_LAB[0] - b_LAB[0]) * (a_LAB[0] - b_LAB[0]) +
+            (a_LAB[1] - b_LAB[1]) * (a_LAB[1] - b_LAB[1]) +
+            (a_LAB[2] - b_LAB[2]) * (a_LAB[2] - b_LAB[2]));
+    }
+    static const float E00(const Tristimulus &lab1, const Tristimulus &lab2, const float &Kl = 1.f, const float &Kc = 1.f, const float &Kh = 1.f)
+    {
+        const float PI         = 3.14159265358979323846264338327950288f;
+        const float L1         = lab1[0];
+        const float a1         = lab1[1];
+        const float b1         = lab1[2];
+        const float L2         = lab2[0];
+        const float a2         = lab2[1];
+        const float b2         = lab2[2];
+        const float Lbar       = (L1 + L2) / 2.f;
+        const float C1         = sqrtf(a1 * a1 + b1 * b1);
+        const float C2         = sqrtf(a2 * a2 + b2 * b2);
+        const float Cbar       = (C1 + C2) / 2.f;
+        const float C7         = powf(Cbar, 7.f);
+        const float pow25_7    = 25.f * 25.f * 25.f * 25.f * 25.f * 25.f * 25.f;
+        const float G          = (1.f - sqrtf(C7 / (C7 + pow25_7))) / 2.f;
+        const float ad1        = a1 * (1.f + G);
+        const float ad2        = a2 * (1.f + G);
+        const float Cd1        = sqrtf(ad1 * ad1 + b1 * b1);
+        const float Cd2        = sqrtf(ad2 * ad2 + b2 * b2);
+        const float CdBar      = (Cd1 + Cd2) / 2.f;
+        const float h1         = fmod(360.f+atan2f(b1, ad1) * 180.0f / PI, 360.f);
+        const float h2         = fmod(360.f+atan2f(b2, ad2) * 180.0f / PI, 360.f);
+        const float HdBar      = (fabs(h1 - h2) > 180.f ? (h1 + h2 + 360.f) : (h1 + h2)) / 2.f;
+        const float T          = 1.f - 0.17f * cosf(PI * (1.f * HdBar - 30.f) / 180.f) + 0.24f * cosf(PI * (2.f * HdBar) / 180.f) + 0.32f * cosf(PI * (3.f * HdBar + 6.f) / 180.f) - 0.20f * cosf(PI * (4.f * HdBar - 63.f) / 180.f);
+        const float deltah     = (fabs(h2 - h1) <= 180.f) ? h2 - h1 : ((h2 <= h1) ? h2 - h1 + 360.f : h2 - h1 - 360.f);
+        const float deltaL     = L2 - L1;
+        const float deltaC     = Cd2 - Cd1;
+        const float deltaH     = 2.f * sqrtf(Cd1 * Cd2) * sinf(PI * deltah / (180.f * 2.f));
+        const float Lbar2      = (Lbar - 50.f) * (Lbar - 50.f);
+        const float Sl         = 1.f + 0.015f * Lbar2 / sqrtf(20.f + Lbar2);
+        const float Sc         = 1.f + 0.045f * CdBar;
+        const float Sh         = 1.f + 0.015f * CdBar * T;
+        const float HdBar2     = (HdBar - 275.f) * (HdBar - 275.f) / (25.f * 25.f);
+        const float deltaTheta = 30.f * expf(-HdBar2);
+        const float CdBar7     = powf(CdBar, 7.f);
+        const float Rc         = 2.f * sqrtf(CdBar7 / (CdBar7 + pow25_7));
+        const float Rt         = -Rc * sinf(2.f * deltaTheta * PI / 180.f);
+        const float dl         = deltaL / (Kl * Sl);
+        const float dc         = deltaC / (Kc * Sc);
+        const float dh         = deltaH / (Kh * Sh);
+        return sqrtf(dl * dl + dc * dc + dh * dh + Rt * dc * dh);
     }
 };
 
@@ -544,10 +588,10 @@ class Spectrum
     }
 
     Spectrum(
-        const float*sample,
-        const int smaples,
-        const float& lo,
-        const float& hi)
+        const float *sample,
+        const int    smaples,
+        const float &lo,
+        const float &hi)
     {
         ;
     }
@@ -577,10 +621,18 @@ inline void dump(const Vector3 &v)
 }
 
 //standard illuminants
+static constexpr Tristimulus Illuminant_A(1.09850f, 1.f, 0.35585f);
+static constexpr Tristimulus Illuminant_B(1.99072f, 1.f, 0.85223f);
+static constexpr Tristimulus Illuminant_C(0.98074f, 1.0f, 1.18232f);
+static constexpr Tristimulus Illuminant_D50(0.96422f, 1.0f, 0.82521f);
+static constexpr Tristimulus Illuminant_D55(0.95682f, 1.0f, 0.92149f);
+static constexpr Tristimulus Illuminant_D60(0.95265f, 1.0f, 1.00883f); // by ACES TB-2014-004.pdf
+static constexpr Tristimulus Illuminant_D65(0.95047f, 1.0f, 1.08883f);
+static constexpr Tristimulus Illuminant_D75(0.94972f, 1.0f, 1.22638f);
 static constexpr Tristimulus Illuminant_E(1.f, 1.f, 1.f);
-static constexpr Tristimulus Illuminant_D50(0.9642f, 1.0f, 0.8249f);
-static constexpr Tristimulus Illuminant_D65(0.95046f, 1.0f, 1.08906f);
-static constexpr Tristimulus Illuminant_C(0.98071f, 1.0f, 1.1825f);
+static constexpr Tristimulus Illuminant_F2(0.99186f, 1.f, 0.67393f);
+static constexpr Tristimulus Illuminant_F7(0.95041f, 1.f, 1.08747f);
+static constexpr Tristimulus Illuminant_F11(1.00962f, 1.f, 0.64350f);
 
 //xR,yR,xG,yG,xB,yB,xW,yW
 static constexpr Gamut AdobeRGB(0.64f, 0.33f, 0.21f, 0.71f, 0.15f, 0.06f, 0.3127f, 0.3290f);
