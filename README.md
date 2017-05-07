@@ -5,10 +5,11 @@ HDR generation color system implementation.
 * tristimulus
 * colorspace matrix
 * OETF/EOTF(sRGB,BT709,BT2084)
+* Yxy
 
 # TODO
 - [ ] other OETF/EOTFs (HLG,BT1886,...)
-- [ ] Yxy, Lab, u'v'
+- [ ] Lab, u'v'
 - [ ] deltaAB, deltaE, delta00
 - [ ] whitepoint from blackbody
 - [ ] spectrum support
