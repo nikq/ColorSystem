@@ -8,6 +8,7 @@
 
 #include <array>
 #include <stdio.h>
+#include <math.h>
 #include <tuple>
 
 #pragma once
