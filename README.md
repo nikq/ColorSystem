@@ -17,4 +17,4 @@ HDR generation color system implementation.
 
 # contact information
 Hajime UCHIMURA / nikutama@gmail.com
-If you gain profit from this code I always welcome gifts or presents :)
+If you gain some profit with this code I always welcome your gifts or presents :)
