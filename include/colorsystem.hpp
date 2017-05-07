@@ -32,10 +32,11 @@ class Matrix3
   public:
     typedef std::array<float, 9> matrix;
     matrix m_;
-private:
+
+  private:
     static constexpr int M(const int x, const int y) { return x + y * 3; }
     static constexpr int I(const int y, const int x) { return ((x - 1) + (y - 1) * 3); }
-public:
+  public:
     constexpr Matrix3(
         const float &a00, const float &a01, const float &a02,
         const float &a10, const float &a11, const float &a12,
@@ -197,14 +198,30 @@ class Tristimulus
     {
         return max(min(*this, Tristimulus(h)), Tristimulus(l));
     }
+    static constexpr Tristimulus clip(const Tristimulus &t, const float &l, const float &h) { return t.clip(l, h); }
     constexpr Tristimulus positive() const
     {
         return max(*this, Tristimulus(0.f));
     }
-    constexpr bool isNegative(const float &a) const { return (a < 0.f) ; }
+    static constexpr Tristimulus positive(const Tristimulus &t) { return t.positive(); }
+
+    constexpr bool isNegative(const float &a) const { return (a < 0.f); }
     constexpr bool hasNegative() const
     {
         return isNegative(v_[0]) || isNegative(v_[1]) || isNegative(v_[2]);
+    }
+    static constexpr bool hasNegative(const Tristimulus &t) { return t.hasNegative(); }
+
+    static constexpr float z_from_xy(const float &x, const float &y) { return 1 - x - y; }
+    static constexpr float X_from_Yxy(const float &Y, const float &x, const float &y) { return x * Y / y; }
+    static constexpr float Y_from_Yxy(const float &Y, const float &x, const float &y) { return Y; }
+    static constexpr float Z_from_Yxy(const float &Y, const float &x, const float &y) { return z_from_xy(x, y) * Y / y; }
+    static constexpr Tristimulus fromYxy(const float &Y, const float &x, const float &y)
+    {
+        return Tristimulus(
+            X_from_Yxy(Y, x, y),
+            Y_from_Yxy(Y, x, y),
+            Z_from_Yxy(Y, x, y));
     }
 };
 
@@ -214,13 +231,9 @@ class Gamut
     Matrix3 toXYZ_;
     Matrix3 fromXYZ_;
 
-    static constexpr float z_from_xy(const float &x, const float &y) { return 1 - x - y; }
-    static constexpr float X_from_xyY(const float &x, const float &y, const float &Y) { return x * Y / y; }
-    static constexpr float Y_from_xyY(const float &x, const float &y, const float &Y) { return Y; }
-    static constexpr float Z_from_xyY(const float &x, const float &y, const float &Y) { return z_from_xy(x, y) * Y / y; }
     static constexpr Matrix3 primMat(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB)
     {
-        return Matrix3(xR, xG, xB, yR, yG, yB, z_from_xy(xR, yR), z_from_xy(xG, yG), z_from_xy(xB, yB));
+        return Matrix3(xR, xG, xB, yR, yG, yB, Tristimulus::z_from_xy(xR, yR), Tristimulus::z_from_xy(xG, yG), Tristimulus::z_from_xy(xB, yB));
     }
     static constexpr Matrix3 diag(const Vector3 &v)
     {
@@ -232,12 +245,11 @@ class Gamut
     }
     static constexpr Matrix3 fromPrimaries(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB, const float &xW, const float &yW)
     {
-        return mulDiag(primMat(xR, yR, xG, yG, xB, yB), Vector3(X_from_xyY(xW, yW, 1.f), Y_from_xyY(xW, yW, 1.f), Z_from_xyY(xW, yW, 1.f)));
+        return mulDiag(primMat(xR, yR, xG, yG, xB, yB), Tristimulus::fromYxy(1.f, xW, yW).vec3());
     }
 
     constexpr Gamut(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB, const float &xW, const float &yW)
-            : toXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW))
-            , fromXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW).invert())
+        : toXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW)), fromXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW).invert())
     {
         ;
     }
@@ -434,7 +446,7 @@ class Delta
     }
 };
 
-inline void dump (const Matrix3 &m)
+inline void dump(const Matrix3 &m)
 {
     printf("-------\n");
     printf("%f,%f,%f\n", m[0], m[1], m[2]);
