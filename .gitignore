@@ -27,3 +27,12 @@
 *.exe
 *.out
 *.app
+
+# CMake
+CMake
+CMakeFiles
+
+# logs
+*.log
+
+CMakeCache.txt

@@ -279,12 +279,12 @@ class OTF
 
         // Note that this does NOT handle any of the signal range
         // considerations from 2084 - this assumes full range (0 - 1)
-        float Np = powf(pixel, 1.0 / pq_m2);
+        float Np = powf(pixel, 1.0f / pq_m2);
         float L = Np - pq_c1;
         if (L < 0.0)
             L = 0.0;
         L = L / (pq_c2 - pq_c3 * Np);
-        L = pow(L, 1.0 / pq_m1);
+        L = powf(L, 1.0f / pq_m1);
         return L * pq_C; // returns cd/m^2
     }
     static const float Y_to_ST2084(const float &nit) // nit should be 0-10000(cd/m^2)
@@ -300,7 +300,7 @@ class OTF
         // considerations from 2084 - this returns full range (0 - 1)
         float L = nit / pq_C;
         float Lm = powf(L, pq_m1);
-        float N = (pq_c1 + pq_c2 * Lm) / (1.0 + pq_c3 * Lm);
+        float N = (pq_c1 + pq_c2 * Lm) / (1.0f + pq_c3 * Lm);
         N = powf(N, pq_m2);
         return N;
     }

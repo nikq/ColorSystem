@@ -6,16 +6,16 @@
 #include "colorsystem.hpp"
 
 namespace {
-    const float epsilon = 0.000001 ;
+    const float epsilon = 0.000001f ;
 }
 
 TEST_CASE ("toXYZ", "[XYZ]") {
-    const ColorSystem::Gamut adobeRGB (0.64, 0.33, 0.21, 0.71, 0.15, 0.06, 0.3127, 0.3290);
+    const ColorSystem::Gamut adobeRGB (0.64f, 0.33f, 0.21f, 0.71f, 0.15f, 0.06f, 0.3127f, 0.3290f);
 
     SECTION ("adobe.toXYZ") {
-        const ColorSystem::Matrix3    expected { 0.576669, 0.185558, 0.188229
-                                               , 0.297345, 0.627363, 0.075291
-                                               , 0.027031, 0.070689, 0.991337
+        const ColorSystem::Matrix3    expected { 0.576669f, 0.185558f, 0.188229f
+                                               , 0.297345f, 0.627363f, 0.075291f
+                                               , 0.027031f, 0.070689f, 0.991337f
                                                };
         auto const &xyz = adobeRGB.toXYZ ();
         for (int_fast32_t i = 0 ; i < 9 ; ++i) {
@@ -34,11 +34,11 @@ TEST_CASE ("toXYZ", "[XYZ]") {
 }
 
 TEST_CASE ("fromXYZ", "[XYZ]") {
-    ColorSystem::Gamut       adobeRGB (0.64, 0.33, 0.21, 0.71, 0.15, 0.06, 0.3127, 0.3290);
+    ColorSystem::Gamut       adobeRGB (0.64f, 0.33f, 0.21f, 0.71f, 0.15f, 0.06f, 0.3127f, 0.3290f);
     SECTION ("adobe.fromXYZ") {
-        const ColorSystem::Matrix3  expected {  2.041588, -0.565007, -0.344731
-                                             , -0.969244,  1.875968,  0.041555
-                                             ,  0.013444, -0.118362,  1.015175
+        const ColorSystem::Matrix3  expected {  2.041588f, -0.565007f, -0.344731f
+                                             , -0.969244f,  1.875968f,  0.041555f
+                                             ,  0.013444f, -0.118362f,  1.015175f
                                              } ;
         auto const &    m = adobeRGB.fromXYZ () ;
         for (int_fast32_t i = 0 ; i < 9 ; ++i) {
@@ -56,7 +56,7 @@ TEST_CASE ("fromXYZ", "[XYZ]") {
 }
 
 TEST_CASE ("BT709") {
-    ColorSystem::Gamut       adobeRGB (0.64, 0.33, 0.21, 0.71, 0.15, 0.06, 0.3127, 0.3290);
+    ColorSystem::Gamut       adobeRGB (0.64f, 0.33f, 0.21f, 0.71f, 0.15f, 0.06f, 0.3127f, 0.3290f);
     ColorSystem::Tristimulus white (1, 1, 1);
     auto const &monitor = ColorSystem::OTF::toScreen( ColorSystem::OTF::BT709, adobeRGB.fromXYZ( white )*100.f) ;
     // 1.062991,0.974048,0.954468
