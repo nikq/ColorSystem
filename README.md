@@ -4,9 +4,10 @@ HDR generation color system implementation.
 # Features
 * tristimulus
 * colorspace matrix
+* OETF/EOTF(sRGB,BT709,BT2084)
 
 # TODO
-- [ ] OETF/EOTF
+- [ ] other OETF/EOTFs (HLG,BT1886,...)
 - [ ] Yxy, Lab, u'v'
 - [ ] deltaAB, deltaE, delta00
 - [ ] whitepoint from blackbody
@@ -16,3 +17,4 @@ HDR generation color system implementation.
 
 # contact information
 Hajime UCHIMURA / nikutama@gmail.com
+If you gain profit from this code I always welcome gifts or presents :)
