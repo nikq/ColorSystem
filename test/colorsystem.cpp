@@ -195,3 +195,23 @@ TEST_CASE("Matrices")
         REQUIRE_THAT(adopt_D65_to_D50, IsApproxEquals(expected, EPS));
     }
 }
+
+TEST_CASE("Spectrum")
+{
+    SECTION("blackbody")
+    {
+        const double planck6000 = ColorSystem::Spectrum::planck(6000., 380 * 1e-9 );
+        REQUIRE(planck6000 == Approx(27366).epsilon(1e2));
+    }
+    SECTION("toXYZ")
+    {
+        const ColorSystem::Spectrum &  D65(ColorSystem::Spectrum::blackbody(6504.f));
+        const ColorSystem::Spectrum &  E(ColorSystem::Spectrum::E(1.f));
+        const ColorSystem::Tristimulus D65_Yxy = ColorSystem::CIEXYZ1931(D65).toYxy();
+        const ColorSystem::Tristimulus E_Yxy   = ColorSystem::CIEXYZ1931(E).toYxy();
+        REQUIRE(D65_Yxy[1] == Approx(ColorSystem::Illuminant_D65.toYxy()[1]).epsilon(1e-2f)); // precision problem...
+        REQUIRE(D65_Yxy[2] == Approx(ColorSystem::Illuminant_D65.toYxy()[2]).epsilon(1e-2f));
+        REQUIRE(E_Yxy[1] == Approx(ColorSystem::Illuminant_E.toYxy()[1]).epsilon(1e-5f));
+        REQUIRE(E_Yxy[2] == Approx(ColorSystem::Illuminant_E.toYxy()[2]).epsilon(1e-5f));
+    }
+}
