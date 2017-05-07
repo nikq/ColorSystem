@@ -32,9 +32,10 @@ class Matrix3
   public:
     typedef std::array<float, 9> matrix;
     matrix m_;
-
-    constexpr int M(const int x, const int y) const { return x + y * 3; }
-    constexpr int I(const int y, const int x) const { return ((x - 1) + (y - 1) * 3); }
+private:
+    static constexpr int M(const int x, const int y) { return x + y * 3; }
+    static constexpr int I(const int y, const int x) { return ((x - 1) + (y - 1) * 3); }
+public:
     constexpr Matrix3(
         const float &a00, const float &a01, const float &a02,
         const float &a10, const float &a11, const float &a12,
@@ -50,7 +51,8 @@ class Matrix3
     {
         return m_[i];
     }
-    constexpr Matrix3 mul(const Matrix3 &a, const Matrix3 &b) const
+
+    static constexpr Matrix3 mul(const Matrix3 &a, const Matrix3 &b)
     {
         return Matrix3(
             a[M(0, 0)] * b[M(0, 0)] + a[M(1, 0)] * b[M(0, 1)] + a[M(2, 0)] * b[M(0, 2)],
@@ -70,7 +72,7 @@ class Matrix3
         return mul(*this, b);
     }
 
-    constexpr Vector3 apply(const Matrix3 &m, const Vector3 &v) const
+    static constexpr Vector3 apply(const Matrix3 &m, const Vector3 &v)
     {
         return Vector3(
             m[M(0, 0)] * v[0] + m[M(1, 0)] * v[1] + m[M(2, 0)] * v[2],
@@ -82,7 +84,7 @@ class Matrix3
         return apply(*this, v);
     }
 
-    constexpr float det(const Matrix3 &m) const
+    static constexpr float det(const Matrix3 &m)
     {
         return m[I(1, 1)] * m[I(2, 2)] * m[I(3, 3)] +
                m[I(2, 1)] * m[I(3, 2)] * m[I(1, 3)] +
@@ -96,7 +98,7 @@ class Matrix3
         return det(*this);
     }
 
-    constexpr Matrix3 mul(const Matrix3 &m, const float &a) const
+    static constexpr Matrix3 mul(const Matrix3 &m, const float &a)
     {
         return Matrix3(
             m[0] * a, m[1] * a, m[2] * a,
@@ -107,7 +109,7 @@ class Matrix3
     {
         return mul(*this, a);
     }
-    constexpr Matrix3 div(const Matrix3 &m, const float &a) const
+    static constexpr Matrix3 div(const Matrix3 &m, const float &a)
     {
         return mul(m, 1.f / a);
     }
@@ -116,7 +118,7 @@ class Matrix3
         return div(*this, a);
     }
 
-    constexpr Matrix3 add(const Matrix3 &a, const Matrix3 &b) const
+    static constexpr Matrix3 add(const Matrix3 &a, const Matrix3 &b)
     {
         return Matrix3(
             a[0] + b[0], a[1] + b[1], a[2] + b[2],
@@ -128,19 +130,19 @@ class Matrix3
         return add(*this, b);
     }
 
-    constexpr Matrix3 invert(const Matrix3 &a) const
+    static constexpr Matrix3 invert(const Matrix3 &a)
     {
         return mul(
             Matrix3(
-                (m_[I(2, 2)] * m_[I(3, 3)] - m_[I(2, 3)] * m_[I(3, 2)]),
-                (m_[I(1, 3)] * m_[I(3, 2)] - m_[I(1, 2)] * m_[I(3, 3)]),
-                (m_[I(1, 2)] * m_[I(2, 3)] - m_[I(1, 3)] * m_[I(2, 2)]),
-                (m_[I(2, 3)] * m_[I(3, 1)] - m_[I(2, 1)] * m_[I(3, 3)]),
-                (m_[I(1, 1)] * m_[I(3, 3)] - m_[I(1, 3)] * m_[I(3, 1)]),
-                (m_[I(1, 3)] * m_[I(2, 1)] - m_[I(1, 1)] * m_[I(2, 3)]),
-                (m_[I(2, 1)] * m_[I(3, 2)] - m_[I(2, 2)] * m_[I(3, 1)]),
-                (m_[I(1, 2)] * m_[I(3, 1)] - m_[I(1, 1)] * m_[I(3, 2)]),
-                (m_[I(1, 1)] * m_[I(2, 2)] - m_[I(1, 2)] * m_[I(2, 1)])),
+                (a.m_[I(2, 2)] * a.m_[I(3, 3)] - a.m_[I(2, 3)] * a.m_[I(3, 2)]),
+                (a.m_[I(1, 3)] * a.m_[I(3, 2)] - a.m_[I(1, 2)] * a.m_[I(3, 3)]),
+                (a.m_[I(1, 2)] * a.m_[I(2, 3)] - a.m_[I(1, 3)] * a.m_[I(2, 2)]),
+                (a.m_[I(2, 3)] * a.m_[I(3, 1)] - a.m_[I(2, 1)] * a.m_[I(3, 3)]),
+                (a.m_[I(1, 1)] * a.m_[I(3, 3)] - a.m_[I(1, 3)] * a.m_[I(3, 1)]),
+                (a.m_[I(1, 3)] * a.m_[I(2, 1)] - a.m_[I(1, 1)] * a.m_[I(2, 3)]),
+                (a.m_[I(2, 1)] * a.m_[I(3, 2)] - a.m_[I(2, 2)] * a.m_[I(3, 1)]),
+                (a.m_[I(1, 2)] * a.m_[I(3, 1)] - a.m_[I(1, 1)] * a.m_[I(3, 2)]),
+                (a.m_[I(1, 1)] * a.m_[I(2, 2)] - a.m_[I(1, 2)] * a.m_[I(2, 1)])),
             1.f / det(a));
     }
     constexpr Matrix3 invert(void) const
@@ -165,7 +167,7 @@ class Tristimulus
         return v_[i];
     }
 
-    constexpr Tristimulus scale(const Tristimulus &t, const float &s) const
+    static constexpr Tristimulus scale(const Tristimulus &t, const float &s)
     {
         return Tristimulus(t[0] * s, t[1] * s, t[2] * s);
     }
@@ -179,13 +181,13 @@ class Tristimulus
     }
 
     constexpr const Vector3 &vec3(void) const { return v_; }
-    constexpr const float mini(const float &a, const float &b) const { return (a < b) ? a : b; }
-    constexpr const float maxi(const float &a, const float &b) const { return (a > b) ? a : b; }
-    constexpr Tristimulus min(const Tristimulus &a, const Tristimulus &b) const
+    static constexpr const float mini(const float &a, const float &b) { return (a < b) ? a : b; }
+    static constexpr const float maxi(const float &a, const float &b) { return (a > b) ? a : b; }
+    static constexpr Tristimulus min(const Tristimulus &a, const Tristimulus &b)
     {
         return Tristimulus(mini(a[0], b[0]), mini(a[1], b[1]), mini(a[2], b[2]));
     }
-    constexpr Tristimulus max(const Tristimulus &a, const Tristimulus &b) const
+    static constexpr Tristimulus max(const Tristimulus &a, const Tristimulus &b)
     {
         return Tristimulus(maxi(a[0], b[0]), maxi(a[1], b[1]), maxi(a[2], b[2]));
     }
@@ -199,8 +201,8 @@ class Tristimulus
     {
         return max(*this, Tristimulus(0.f));
     }
-    constexpr bool isNegative(const float &a) const { return (a < 0.f) ? true : false; }
-    constexpr bool hasNegative(void) const
+    constexpr bool isNegative(const float &a) const { return (a < 0.f) ; }
+    constexpr bool hasNegative() const
     {
         return isNegative(v_[0]) || isNegative(v_[1]) || isNegative(v_[2]);
     }
@@ -212,29 +214,30 @@ class Gamut
     Matrix3 toXYZ_;
     Matrix3 fromXYZ_;
 
-    constexpr float z_from_xy(const float &x, const float &y) const { return 1 - x - y; }
-    constexpr float X_from_xyY(const float &x, const float &y, const float &Y) const { return x * Y / y; }
-    constexpr float Y_from_xyY(const float &x, const float &y, const float &Y) const { return Y; }
-    constexpr float Z_from_xyY(const float &x, const float &y, const float &Y) const { return z_from_xy(x, y) * Y / y; }
-    constexpr Matrix3 primMat(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB) const
+    static constexpr float z_from_xy(const float &x, const float &y) { return 1 - x - y; }
+    static constexpr float X_from_xyY(const float &x, const float &y, const float &Y) { return x * Y / y; }
+    static constexpr float Y_from_xyY(const float &x, const float &y, const float &Y) { return Y; }
+    static constexpr float Z_from_xyY(const float &x, const float &y, const float &Y) { return z_from_xy(x, y) * Y / y; }
+    static constexpr Matrix3 primMat(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB)
     {
         return Matrix3(xR, xG, xB, yR, yG, yB, z_from_xy(xR, yR), z_from_xy(xG, yG), z_from_xy(xB, yB));
     }
-    constexpr Matrix3 diag(const Vector3 &v) const
+    static constexpr Matrix3 diag(const Vector3 &v)
     {
         return Matrix3(v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]);
     }
-    constexpr Matrix3 mulDiag(const Matrix3 &m, const Vector3 &v) const
+    static constexpr Matrix3 mulDiag(const Matrix3 &m, const Vector3 &v)
     {
         return m.mul(diag(m.invert().apply(v)));
     }
-    constexpr Matrix3 fromPrimaries(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB, const float &xW, const float &yW) const
+    static constexpr Matrix3 fromPrimaries(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB, const float &xW, const float &yW)
     {
         return mulDiag(primMat(xR, yR, xG, yG, xB, yB), Vector3(X_from_xyY(xW, yW, 1.f), Y_from_xyY(xW, yW, 1.f), Z_from_xyY(xW, yW, 1.f)));
     }
 
     constexpr Gamut(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB, const float &xW, const float &yW)
-        : toXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW)), fromXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW).invert())
+            : toXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW))
+            , fromXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW).invert())
     {
         ;
     }
@@ -431,14 +434,15 @@ class Delta
     }
 };
 
-void dump(const Matrix3 &m)
+inline void dump (const Matrix3 &m)
 {
     printf("-------\n");
     printf("%f,%f,%f\n", m[0], m[1], m[2]);
     printf("%f,%f,%f\n", m[3], m[4], m[5]);
     printf("%f,%f,%f\n", m[6], m[7], m[8]);
 }
-void dump(const Vector3 &v)
+
+inline void dump(const Vector3 &v)
 {
     printf("v-------\n");
     printf("%f,%f,%f\n", v[0], v[1], v[2]);
