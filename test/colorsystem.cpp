@@ -111,3 +111,31 @@ TEST_CASE("fromYxy")
     REQUIRE(R_XYZ[1] == Approx(11.39f).epsilon(1e-3f));
     REQUIRE(R_XYZ[2] == Approx(4.90f).epsilon(1e-3f));
 }
+
+TEST_CASE("ACES2065")
+{
+    const ColorSystem::Matrix3 &ACES2065_to_XYZ = ColorSystem::ACES2065.toXYZ();
+    const ColorSystem::Matrix3 &ACES2065_from_XYZ = ColorSystem::ACES2065.fromXYZ();
+    const float EPS=1e-5f;
+    REQUIRE( ACES2065_to_XYZ[0] == Approx(0.9525523959f).epsilon(EPS));
+    REQUIRE( ACES2065_to_XYZ[1] == Approx(0.0000000000f).epsilon(EPS));
+    REQUIRE( ACES2065_to_XYZ[2] == Approx(0.0000936786f).epsilon(EPS));
+    REQUIRE( ACES2065_to_XYZ[3] == Approx(0.3439664498f).epsilon(EPS));
+    REQUIRE( ACES2065_to_XYZ[4] == Approx(0.7281660966f).epsilon(EPS));
+    REQUIRE( ACES2065_to_XYZ[5] == Approx(-0.0721325464f).epsilon(EPS));
+    REQUIRE( ACES2065_to_XYZ[6] == Approx(0.0000000000f).epsilon(EPS));
+    REQUIRE( ACES2065_to_XYZ[7] == Approx(0.0000000000f).epsilon(EPS));
+    REQUIRE( ACES2065_to_XYZ[8] == Approx(1.0088251844f).epsilon(EPS));
+    
+    REQUIRE( ACES2065_from_XYZ[0] == Approx(1.0498110175f).epsilon(EPS));
+    REQUIRE( ACES2065_from_XYZ[1] == Approx(0.0000000000f).epsilon(EPS));
+    REQUIRE( ACES2065_from_XYZ[2] == Approx(-0.0000974845f).epsilon(EPS));
+
+    REQUIRE( ACES2065_from_XYZ[3] == Approx(-0.4959030231f).epsilon(EPS));
+    REQUIRE( ACES2065_from_XYZ[4] == Approx(1.3733130458f).epsilon(EPS));
+    REQUIRE( ACES2065_from_XYZ[5] == Approx(0.0982400361f).epsilon(EPS));
+    
+    REQUIRE( ACES2065_from_XYZ[6] == Approx(0.0000000000f).epsilon(EPS));
+    REQUIRE( ACES2065_from_XYZ[7] == Approx(0.0000000000f).epsilon(EPS));
+    REQUIRE( ACES2065_from_XYZ[8] == Approx(0.9912520182f).epsilon(EPS));
+}
