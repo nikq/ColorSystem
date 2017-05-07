@@ -14,4 +14,4 @@ endif ()
 
 add_test (NAME colortest
           COMMAND colortest
-          WORKING DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+          WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
