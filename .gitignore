@@ -29,10 +29,11 @@
 *.app
 
 # CMake
-CMake
+build
 CMakeFiles
 
 # logs
 *.log
 
 CMakeCache.txt
+.vscode
