@@ -45,7 +45,7 @@ class Matrix3
         const float &a10, const float &a11, const float &a12,
         const float &a20, const float &a21, const float &a22) : m_({a00, a01, a02, a10, a11, a12, a20, a21, a22}) { ; }
     constexpr Matrix3(void) : m_({1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f}) { ; }
-    constexpr Matrix3 diag(const Vector3 &v) const
+    static constexpr Matrix3 diag(const Vector3 &v)
     {
         return Matrix3(v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]);
     }
@@ -190,6 +190,16 @@ class Tristimulus
     constexpr Tristimulus operator*(const float &s) const
     {
         return scale(s);
+    }
+
+    // apply color transform matrix
+    static constexpr Tristimulus apply(const Tristimulus &t, const Matrix3 &m)
+    {
+        return Tristimulus(m.apply(t.vec3()));
+    }
+    constexpr Tristimulus apply(const Matrix3 &m) const
+    {
+        return apply(*this, m);
     }
 
     static constexpr Tristimulus add(const Tristimulus &a, const Tristimulus &b)
@@ -378,8 +388,8 @@ class Delta
         const float Cd1        = sqrtf(ad1 * ad1 + b1 * b1);
         const float Cd2        = sqrtf(ad2 * ad2 + b2 * b2);
         const float CdBar      = (Cd1 + Cd2) / 2.f;
-        const float h1         = fmod(360.f+atan2f(b1, ad1) * 180.0f / PI, 360.f);
-        const float h2         = fmod(360.f+atan2f(b2, ad2) * 180.0f / PI, 360.f);
+        const float h1         = fmod(360.f + atan2f(b1, ad1) * 180.0f / PI, 360.f);
+        const float h2         = fmod(360.f + atan2f(b2, ad2) * 180.0f / PI, 360.f);
         const float HdBar      = (fabs(h1 - h2) > 180.f ? (h1 + h2 + 360.f) : (h1 + h2)) / 2.f;
         const float T          = 1.f - 0.17f * cosf(PI * (1.f * HdBar - 30.f) / 180.f) + 0.24f * cosf(PI * (2.f * HdBar) / 180.f) + 0.32f * cosf(PI * (3.f * HdBar + 6.f) / 180.f) - 0.20f * cosf(PI * (4.f * HdBar - 63.f) / 180.f);
         const float deltah     = (fabs(h2 - h1) <= 180.f) ? h2 - h1 : ((h2 <= h1) ? h2 - h1 + 360.f : h2 - h1 - 360.f);
@@ -424,7 +434,7 @@ class Gamut
     {
         return mulDiag(primMat(xR, yR, xG, yG, xB, yB), Tristimulus::fromYxy(1.f, xW, yW).vec3());
     }
-    constexpr Gamut(const Matrix3 &toXYZ) : toXYZ_(toXYZ), fromXYZ_(toXYZ.invert())
+    constexpr Gamut(const Matrix3 &fromXYZ) : toXYZ_(fromXYZ.invert()), fromXYZ_(fromXYZ)
     {
         ;
     }
@@ -433,8 +443,8 @@ class Gamut
     {
         ;
     }
-    const Matrix3 &toXYZ(void) const { return toXYZ_; }
-    const Matrix3 &fromXYZ(void) const { return fromXYZ_; }
+    constexpr Matrix3 toXYZ(void) const { return toXYZ_; }
+    constexpr Matrix3 fromXYZ(void) const { return fromXYZ_; }
     constexpr Tristimulus
     toXYZ(const Tristimulus &tri) const
     {
@@ -644,5 +654,23 @@ static constexpr Gamut S_Gamut3_Cine(0.766f, 0.275f, 0.225f, 0.800f, 0.089f, -0.
 static constexpr Gamut ACEScg(0.713f, 0.293f, 0.165f, 0.830f, 0.128f, 0.044f, 0.32168f, 0.33767f);
 static constexpr Gamut ACES2065(0.73470f, 0.26530f, 0.f, 1.f, 0.0001f, -0.077f, 0.32168f, 0.33767f);
 static constexpr Gamut LMS(Matrix3(0.8951f, 0.2664f, -0.1614f, -0.7502f, 1.7135f, 0.0367f, 0.0389f, -0.0685f, 1.0296f));
+
+static constexpr Matrix3 GamutConvert(const Gamut &src, const Gamut &dst)
+{
+    return dst.fromXYZ().mul(src.toXYZ());
+}
+
+static constexpr Matrix3 Bradford(const Tristimulus &white_src, const Tristimulus &white_dst)
+{
+    const Tristimulus &lms_src(LMS.fromXYZ(white_src));
+    const Tristimulus &lms_dst(LMS.fromXYZ(white_dst));
+    const Matrix3      scale(
+        Matrix3::diag(
+            Vector3(
+                lms_dst[0] / lms_src[0],
+                lms_dst[1] / lms_src[1],
+                lms_dst[2] / lms_src[2])));
+    return LMS.toXYZ().mul(scale).mul(LMS.fromXYZ());
+}
 
 } // namespace ColorSystem
