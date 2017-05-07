@@ -163,6 +163,7 @@ class Tristimulus
     constexpr Tristimulus() : v_(0, 0, 0) { ; }
     constexpr Tristimulus(const Vector3 &v) : v_(v) { ; }
     constexpr Tristimulus(const float &v) : v_(v, v, v) { ; }
+    constexpr const Vector3 &vec3(void) const { return v_; }
     constexpr float operator[](const int &i) const
     {
         return v_[i];
@@ -184,7 +185,20 @@ class Tristimulus
         return scale(s);
     }
 
-    constexpr const Vector3 &vec3(void) const { return v_; }
+    // per-element re-lighting
+    static constexpr Tristimulus mul(const Tristimulus &a, const Tristimulus &b)
+    {
+        return Tristimulus(a[0] * b[0], a[1] * b[1], a[2] * b[2]);
+    }
+    constexpr const Tristimulus mul(const Tristimulus &b) const { return mul(*this, b); }
+    constexpr const Tristimulus operator*(const Tristimulus &b) const { return mul(*this, b); }
+
+    static constexpr float dot(const Tristimulus &a, const Tristimulus &b)
+    {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    }
+    constexpr float dot(const Tristimulus &b) const { return dot(*this, b); }
+
     static constexpr const float mini(const float &a, const float &b) { return (a < b) ? a : b; }
     static constexpr const float maxi(const float &a, const float &b) { return (a > b) ? a : b; }
     static constexpr Tristimulus min(const Tristimulus &a, const Tristimulus &b)
@@ -363,26 +377,17 @@ class OTF
         break;
         case SRGB:
         {
-            return Tristimulus(
-                Y_to_sRGB(scene[0]),
-                Y_to_sRGB(scene[1]),
-                Y_to_sRGB(scene[2]));
+            return Tristimulus(Y_to_sRGB(scene[0]), Y_to_sRGB(scene[1]), Y_to_sRGB(scene[2]));
         }
         break;
         case BT709:
         {
-            return Tristimulus(
-                Y_to_BT709(scene[0]),
-                Y_to_BT709(scene[1]),
-                Y_to_BT709(scene[2]));
+            return Tristimulus(Y_to_BT709(scene[0]), Y_to_BT709(scene[1]), Y_to_BT709(scene[2]));
         }
         break;
         case ST2084:
         {
-            return Tristimulus(
-                Y_to_ST2084(scene[0]),
-                Y_to_ST2084(scene[1]),
-                Y_to_ST2084(scene[2]));
+            return Tristimulus(Y_to_ST2084(scene[0]), Y_to_ST2084(scene[1]), Y_to_ST2084(scene[2]));
         }
         break;
         case LINEAR:
@@ -401,26 +406,17 @@ class OTF
         break;
         case SRGB:
         {
-            return Tristimulus(
-                sRGB_to_Y(screen[0]),
-                sRGB_to_Y(screen[1]),
-                sRGB_to_Y(screen[2]));
+            return Tristimulus(sRGB_to_Y(screen[0]), sRGB_to_Y(screen[1]), sRGB_to_Y(screen[2]));
         }
         break;
         case BT709:
         {
-            return Tristimulus(
-                BT709_to_Y(screen[0]),
-                BT709_to_Y(screen[1]),
-                BT709_to_Y(screen[2]));
+            return Tristimulus(BT709_to_Y(screen[0]), BT709_to_Y(screen[1]), BT709_to_Y(screen[2]));
         }
         break;
         case ST2084:
         {
-            return Tristimulus(
-                ST2084_to_Y(screen[0]),
-                ST2084_to_Y(screen[1]),
-                ST2084_to_Y(screen[2]));
+            return Tristimulus(ST2084_to_Y(screen[0]), ST2084_to_Y(screen[1]), ST2084_to_Y(screen[2]));
         }
         break;
         case LINEAR:
