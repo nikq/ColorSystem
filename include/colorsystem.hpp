@@ -305,6 +305,45 @@ class Tristimulus
     {
         return fromYuv(Tristimulus(X, Y, Z));
     }
+    constexpr Tristimulus toYuv(void) const { return toYuv(*this); }
+    constexpr Tristimulus fromYuv(void) const { return fromYuv(*this); }
+    // Lab
+    static constexpr float CIELAB_curve(const float &f)
+    {
+        const float threshold = 0.008856f;
+        const float K         = 903.3f;
+        return (f > 1.f) ? 1.f : ((f > threshold) ? powf(f, 1.f / 3.f) : ((K * f + 16.f) / 116.f));
+    }
+    static constexpr float CIELAB_decurve(const float &f)
+    {
+        const float K = (3.f / 29.f) * (3.f / 29.f) * (3.f / 29.f);
+        return (f > 1.f) ? 1.f : ((f > 6.f / 29.f) ? pow(f, 3.f) : (116.f * f - 16.f) * K);
+    }
+    static constexpr Tristimulus toCIELAB(const Tristimulus &t, const Tristimulus &white)
+    {
+        const float x0 = white[0];
+        const float y0 = white[1];
+        const float z0 = white[2];
+        const float x1 = CIELAB_curve(t[0] / x0);
+        const float y1 = CIELAB_curve(t[1] / y0);
+        const float z1 = CIELAB_curve(t[2] / z0);
+        return Tristimulus(116.f * y1 - 16.f, 500.f * (x1 - y1), 200.f * (y1 - z1));
+    }
+    static constexpr Tristimulus fromCIELAB(const Tristimulus &t, const Tristimulus &white)
+    {
+        const float x0 = white[0];
+        const float y0 = white[1];
+        const float z0 = white[2];
+        const float fy = (t[0] + 16.f) / 116.f;
+        const float fx = fy + (t[1] / 500.f);
+        const float fz = fy - (t[2] / 200.f);
+        return Tristimulus(CIELAB_decurve(fx) * x0, CIELAB_decurve(fy) * y0, CIELAB_decurve(fz) * z0);
+    }
+    constexpr Tristimulus toCIELAB(const Tristimulus &white) const { return toCIELAB(*this, white); }
+    constexpr Tristimulus fromCIELAB(const Tristimulus &white) const { return fromCIELAB(*this, white); }
+    // CIELAB uses D50 by default.
+    constexpr Tristimulus toCIELAB(void) const { return toCIELAB(*this, Tristimulus(0.9642f, 1.0f, 0.8249f)); }
+    constexpr Tristimulus fromCIELAB(void) const { return fromCIELAB(*this, Tristimulus(0.9642f, 1.0f, 0.8249f)); }
 };
 
 class Delta
@@ -341,19 +380,24 @@ class Gamut
     {
         return mulDiag(primMat(xR, yR, xG, yG, xB, yB), Tristimulus::fromYxy(1.f, xW, yW).vec3());
     }
-
+    constexpr Gamut(const Matrix3 &toXYZ) : toXYZ_(toXYZ), fromXYZ_(toXYZ.invert())
+    {
+        ;
+    }
     constexpr Gamut(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB, const float &xW, const float &yW)
         : toXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW)), fromXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW).invert())
     {
         ;
     }
-    const Matrix3 &       toXYZ(void) const { return toXYZ_; }
-    const Matrix3 &       fromXYZ(void) const { return fromXYZ_; }
-    constexpr Tristimulus toXYZ(const Tristimulus &tri) const
+    const Matrix3 &toXYZ(void) const { return toXYZ_; }
+    const Matrix3 &fromXYZ(void) const { return fromXYZ_; }
+    constexpr Tristimulus
+    toXYZ(const Tristimulus &tri) const
     {
         return Tristimulus(toXYZ_.apply(tri.vec3()));
     }
-    constexpr Tristimulus fromXYZ(const Tristimulus &tri) const
+    constexpr Tristimulus
+    fromXYZ(const Tristimulus &tri) const
     {
         return Tristimulus(fromXYZ_.apply(tri.vec3()));
     }
@@ -498,6 +542,7 @@ class Spectrum
     {
         ;
     }
+
     Spectrum(
         const float*sample,
         const int smaples,
@@ -530,7 +575,12 @@ inline void dump(const Vector3 &v)
     printf("v-------\n");
     printf("%f,%f,%f\n", v[0], v[1], v[2]);
 }
-//
+
+//standard illuminants
+static constexpr Tristimulus Illuminant_E(1.f, 1.f, 1.f);
+static constexpr Tristimulus Illuminant_D50(0.9642f, 1.0f, 0.8249f);
+static constexpr Tristimulus Illuminant_D65(0.95046f, 1.0f, 1.08906f);
+static constexpr Tristimulus Illuminant_C(0.98071f, 1.0f, 1.1825f);
 
 //xR,yR,xG,yG,xB,yB,xW,yW
 static constexpr Gamut AdobeRGB(0.64f, 0.33f, 0.21f, 0.71f, 0.15f, 0.06f, 0.3127f, 0.3290f);
@@ -541,4 +591,6 @@ static constexpr Gamut S_Gamut(0.73f, 0.28f, 0.14f, 0.855f, 0.10f, -0.05f, 0.312
 static constexpr Gamut S_Gamut3_Cine(0.766f, 0.275f, 0.225f, 0.800f, 0.089f, -0.087f, 0.3127f, 0.3290f);
 static constexpr Gamut ACEScg(0.713f, 0.293f, 0.165f, 0.830f, 0.128f, 0.044f, 0.32168f, 0.33767f);
 static constexpr Gamut ACES2065(0.73470f, 0.26530f, 0.f, 1.f, 0.0001f, -0.077f, 0.32168f, 0.33767f);
+static constexpr Gamut LMS(Matrix3(0.8951f, 0.2664f, -0.1614f, -0.7502f, 1.7135f, 0.0367f, 0.0389f, -0.0685f, 1.0296f));
+
 } // namespace ColorSystem
