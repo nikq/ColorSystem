@@ -5,6 +5,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <limits>
+#include <iostream>
+#include <iomanip>
+
 #include <catch.hpp>
 
 #endif /* common_hpp__3e4a26a3f2b54c5ab0cffb73751f7dfd */
