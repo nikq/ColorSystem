@@ -21,13 +21,16 @@ class Vector3
     typedef std::array<float, 3> vec3;
     vec3 v_;
     constexpr Vector3(const float a, const float b, const float c) : v_({a, b, c}) { ; }
+    constexpr float operator[](const int &i) const
+    {
+        return v_[i];
+    }
     constexpr float x() const { return v_[0]; }
     constexpr float y() const { return v_[1]; }
     constexpr float z() const { return v_[2]; }
-    constexpr float operator[](const int &i) const { return v_[i]; }
-    constexpr auto                        size() const { return v_.size(); }
-    auto                                  begin() const { return v_.begin(); }
-    auto                                  end() const { return v_.end(); }
+    constexpr auto  size() const { return v_.size(); }
+    auto            begin() const { return v_.begin(); }
+    auto            end() const { return v_.end(); }
 };
 
 class Matrix3
@@ -1021,7 +1024,6 @@ static constexpr Tristimulus SpectrumIntegrate(const Spectrum &s, const Spectrum
 }
 static constexpr Tristimulus CIEXYZ1931(const Spectrum &s) { return SpectrumIntegrate(s, CIE1931_X, CIE1931_Y, CIE1931_Z); }
 static constexpr Tristimulus CIEXYZ2012(const Spectrum &s) { return SpectrumIntegrate(s, CIE2012_X, CIE2012_Y, CIE2012_Z); }
-
 //standard illuminants
 static constexpr Tristimulus Illuminant_A(1.09850f, 1.f, 0.35585f);
 static constexpr Tristimulus Illuminant_B(1.99072f, 1.f, 0.85223f);
