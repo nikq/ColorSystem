@@ -620,8 +620,8 @@ class Spectrum
     typedef std::array<float, 400> spectrum; // 380-780, 1nm, fixed.
     spectrum s_;
 
-    constexpr Spectrum() { ; }
-    constexpr Spectrum(spectrum &s) : s_(s) { ; }
+    constexpr Spectrum() : s_{} { ; }
+    constexpr Spectrum(const spectrum &s) : s_(s) { ; }
     static constexpr float lerp(const float a, const float b, const float r)
     {
         return a * (1 - r) + b * r;
