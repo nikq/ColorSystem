@@ -205,12 +205,15 @@ TEST_CASE("Spectrum")
     }
     SECTION("toXYZ")
     {
-        const ColorSystem::Spectrum &  D65(ColorSystem::Spectrum::blackbody(6504.f));
+        const ColorSystem::Spectrum &  BB65(ColorSystem::Spectrum::blackbody(6504.f));
         const ColorSystem::Spectrum &  E(ColorSystem::Spectrum::E(1.f));
-        const ColorSystem::Tristimulus D65_Yxy = ColorSystem::CIEXYZ1931(D65).toYxy();
+        const ColorSystem::Tristimulus D65_Yxy = ColorSystem::CIEXYZ1931( ColorSystem::CIE_D65).toYxy();
+        const ColorSystem::Tristimulus BB65_Yxy = ColorSystem::CIEXYZ1931(BB65).toYxy();
         const ColorSystem::Tristimulus E_Yxy   = ColorSystem::CIEXYZ1931(E).toYxy();
-        REQUIRE(D65_Yxy[1] == Approx(ColorSystem::Illuminant_D65.toYxy()[1]).epsilon(1e-2f)); // precision problem...
-        REQUIRE(D65_Yxy[2] == Approx(ColorSystem::Illuminant_D65.toYxy()[2]).epsilon(1e-2f));
+        REQUIRE(D65_Yxy[1] == Approx(ColorSystem::Illuminant_D65.toYxy()[1]).epsilon(1e-4f));
+        REQUIRE(D65_Yxy[2] == Approx(ColorSystem::Illuminant_D65.toYxy()[2]).epsilon(1e-4f));
+        REQUIRE(BB65_Yxy[1] == Approx(ColorSystem::Illuminant_D65.toYxy()[1]).epsilon(1e-2f)); // precision problem...
+        REQUIRE(BB65_Yxy[2] == Approx(ColorSystem::Illuminant_D65.toYxy()[2]).epsilon(1e-2f));
         REQUIRE(E_Yxy[1] == Approx(ColorSystem::Illuminant_E.toYxy()[1]).epsilon(1e-5f));
         REQUIRE(E_Yxy[2] == Approx(ColorSystem::Illuminant_E.toYxy()[2]).epsilon(1e-5f));
     }
