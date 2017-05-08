@@ -1019,14 +1019,8 @@ static constexpr Tristimulus SpectrumIntegrate(const Spectrum &s, const Spectrum
 {
     return Tristimulus(Spectrum::dot(s, x), Spectrum::dot(s, y), Spectrum::dot(s, z));
 }
-static constexpr Tristimulus CIEXYZ1931(const Spectrum &s)
-{
-    return SpectrumIntegrate(s, CIE1931_X, CIE1931_Y, CIE1931_Z);
-}
-static constexpr Tristimulus CIEXYZ2012(const Spectrum &s)
-{
-    return SpectrumIntegrate(s, CIE2012_X, CIE2012_Y, CIE2012_Z);
-}
+static constexpr Tristimulus CIEXYZ1931(const Spectrum &s) { return SpectrumIntegrate(s, CIE1931_X, CIE1931_Y, CIE1931_Z); }
+static constexpr Tristimulus CIEXYZ2012(const Spectrum &s) { return SpectrumIntegrate(s, CIE2012_X, CIE2012_Y, CIE2012_Z); }
 
 //standard illuminants
 static constexpr Tristimulus Illuminant_A(1.09850f, 1.f, 0.35585f);
@@ -1053,11 +1047,13 @@ static constexpr Gamut ACEScg(0.713f, 0.293f, 0.165f, 0.830f, 0.128f, 0.044f, 0.
 static constexpr Gamut ACES2065(0.73470f, 0.26530f, 0.f, 1.f, 0.0001f, -0.077f, 0.32168f, 0.33767f);
 static constexpr Gamut LMS(Matrix3(0.8951f, 0.2664f, -0.1614f, -0.7502f, 1.7135f, 0.0367f, 0.0389f, -0.0685f, 1.0296f)); // fromXYZ matrix.
 
+// returns Gamut convert matrix
 static constexpr Matrix3 GamutConvert(const Gamut &src, const Gamut &dst)
 {
     return dst.fromXYZ().mul(src.toXYZ());
 }
 
+// returns Bradford adaptation matrix
 static constexpr Matrix3 Bradford(const Tristimulus &white_src, const Tristimulus &white_dst)
 {
     const Tristimulus &lms_src(LMS.fromXYZ(white_src));
@@ -1069,6 +1065,17 @@ static constexpr Matrix3 Bradford(const Tristimulus &white_src, const Tristimulu
                 lms_dst[1] / lms_src[1],
                 lms_dst[2] / lms_src[2])));
     return LMS.toXYZ().mul(scale).mul(LMS.fromXYZ());
+}
+
+// cubic spline approx https://en.wikipedia.org/wiki/Planckian_locus#Approximation
+static constexpr Tristimulus PlanckianLocus(const float &T, const float &Y = 1.f)
+{
+    const float x = (T < 4000.f) ? ((-0.2661239e9f / (T * T * T)) - (0.2343580e6f / (T * T)) + (0.8776956e3f / T) + 0.179910f)
+                                 : ((-3.0258469e9f / (T * T * T)) + (2.1070379e6f / (T * T)) + (0.2226347e3f / T) + 0.240390f);
+    const float y = (T < 2222.f) ? ((-1.1063814f * x * x * x) - (1.34811020f * x * x) + (2.18555832f * x) - 0.20219683f)
+                                 : ((T < 4000.f) ? ((-1.1063814f * x * x * x - 1.34811020f * x * x + 2.18555832f * x - 0.20219683f))
+                                                 : ((3.0817580f * x * x * x - 5.87338670f * x * x + 3.75112997f * x - 0.37001483f)));
+    return Tristimulus(Y, x, y).fromYxy();
 }
 
 } // namespace ColorSystem
