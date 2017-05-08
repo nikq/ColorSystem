@@ -1,4 +1,5 @@
 #include "common.hpp"
+
 #include "TestUtilities.hpp"
 
 #include <colorsystem.hpp>

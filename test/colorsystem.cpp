@@ -3,6 +3,7 @@
 // copyright 2017 (c) Hajime UCHIMURA / @nikq
 // all rights reserved
 #include "common.hpp"
+
 #include "TestUtilities.hpp"
 
 #include <colorsystem.hpp>
