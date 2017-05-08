@@ -10,11 +10,13 @@ HDR generation color system implementation.
 * Bradford adaptation
 * Popular gamuts(709,2020,P3,S-Gamut3/cine,AdobeRGB,ACES2065,ACEScg)
 * Popular illuminants(A,B,C,D50/55/60/65/75,E,F2/7/11)
+* whitepoint from blackbody
+* spectrum support
+* Popular spectrum illuminants(D65)
 
 # TODO
 - [ ] other OETF/EOTFs (HLG,BT1886,...)
-- [ ] whitepoint from blackbody
-- [ ] spectrum support
+- [ ] color matching from measured Tristimulus pairs
 - [ ] everything primitive
 
 # contact information
