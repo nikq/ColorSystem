@@ -218,3 +218,15 @@ TEST_CASE("Spectrum")
         REQUIRE(E_Yxy[2] == Approx(ColorSystem::Illuminant_E.toYxy()[2]).epsilon(1e-5f));
     }
 }
+TEST_CASE("Macbeth")
+{
+    SECTION("ChartToXYZ")
+    {
+        for( const ColorSystem::Spectrum& s : ColorSystem::Macbeth::Patch )
+        {
+            const ColorSystem::Tristimulus& xyz = ColorSystem::CIEXYZ1931( s * ColorSystem::CIE_D65 );
+            const ColorSystem::Tristimulus& Yxy = xyz.toYxy();
+            printf("%f,%f,%f\n",Yxy[0],Yxy[1],Yxy[2]); // TODO: check with D50 values.
+        }
+    }
+}
