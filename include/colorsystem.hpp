@@ -194,6 +194,10 @@ class Tristimulus
     {
         return scale(s);
     }
+    constexpr Tristimulus operator/(const float &s) const
+    {
+        return scale(1.f / s);
+    }
 
     // apply color transform matrix
     static constexpr Tristimulus apply(const Tristimulus &t, const Matrix3 &m)
@@ -710,6 +714,18 @@ class Spectrum
     }
     const Spectrum operator*(const Spectrum &b) const { return mul(*this, b); }
     const Spectrum operator+(const Spectrum &b) const { return add(*this, b); }
+    static constexpr float sumHelper(const Spectrum &a, const int i)
+    {
+        return (i > 0) ? sumHelper(a, i - 1) + a[i] : a[0];
+    }
+    static constexpr float sum(const Spectrum &a)
+    {
+        return sumHelper(a, 399);
+    }
+    constexpr float sum() const
+    {
+        return sum(*this);
+    }
     static constexpr float dotHelper(const Spectrum &a, const Spectrum &b, const int i)
     {
         return (i > 0) ? a[i] * b[i] + dotHelper(a, b, i - 1) : a[0] * b[0];
@@ -724,27 +740,20 @@ class Spectrum
     }
 };
 
-inline void dump(const Matrix3 &m)
+class Observer
 {
-    printf("-------\n");
-    printf("%f,%f,%f\n", m[0], m[1], m[2]);
-    printf("%f,%f,%f\n", m[3], m[4], m[5]);
-    printf("%f,%f,%f\n", m[6], m[7], m[8]);
-}
-
-inline void dump(const Vector3 &v)
-{
-    printf("v-------\n");
-    printf("%f,%f,%f\n", v[0], v[1], v[2]);
-}
-
-inline void dump(const Spectrum &s)
-{
-    for (int i = 0; i < 400; i++)
+  public:
+    Spectrum X_, Y_, Z_;
+    constexpr Observer(const Spectrum &X, const Spectrum &Y, const Spectrum &Z) : X_(X), Y_(Y), Z_(Z) { ; }
+    static constexpr Tristimulus SpectrumIntegrate(const Spectrum &s, const Spectrum &x, const Spectrum &y, const Spectrum &z)
     {
-        printf("%3d:%f\n", i, s[i]);
+        return Tristimulus(Spectrum::dot(s, x), Spectrum::dot(s, y), Spectrum::dot(s, z));
     }
-}
+    constexpr Tristimulus fromSpectrum(const Spectrum &s) const
+    {
+        return SpectrumIntegrate(s, X_, Y_, Z_);
+    }
+};
 
 static constexpr Spectrum CIE1931_X({0.00136800000f, 0.00150205000f, 0.00164232800f, 0.00180238200f, 0.00199575700f, 0.00223600000f, 0.00253538500f, 0.00289260300f, 0.00330082900f, 0.00375323600f,
     0.00424300000f, 0.00476238900f, 0.00533004800f, 0.00597871200f, 0.00674111700f, 0.00765000000f, 0.00875137300f, 0.01002888000f, 0.01142170000f, 0.01286901000f,
@@ -1900,12 +1909,11 @@ namespace Macbeth
 
 } // namespace Macbeth
 
-static constexpr Tristimulus SpectrumIntegrate(const Spectrum &s, const Spectrum &x, const Spectrum &y, const Spectrum &z)
-{
-    return Tristimulus(Spectrum::dot(s, x), Spectrum::dot(s, y), Spectrum::dot(s, z));
-}
-static constexpr Tristimulus CIEXYZ1931(const Spectrum &s) { return SpectrumIntegrate(s, CIE1931_X, CIE1931_Y, CIE1931_Z); }
-static constexpr Tristimulus CIEXYZ2012(const Spectrum &s) { return SpectrumIntegrate(s, CIE2012_X, CIE2012_Y, CIE2012_Z); }
+
+// Standard observers
+static constexpr Observer CIE1931(CIE1931_X, CIE1931_Y, CIE1931_Z);
+static constexpr Observer CIE2012(CIE2012_X, CIE2012_Y, CIE2012_Z);
+
 //standard illuminants
 static constexpr Tristimulus Illuminant_A(1.09850f, 1.f, 0.35585f);
 static constexpr Tristimulus Illuminant_B(1.99072f, 1.f, 0.85223f);
@@ -1930,6 +1938,7 @@ static constexpr Gamut S_Gamut3_Cine(0.766f, 0.275f, 0.225f, 0.800f, 0.089f, -0.
 static constexpr Gamut ACEScg(0.713f, 0.293f, 0.165f, 0.830f, 0.128f, 0.044f, 0.32168f, 0.33767f);
 static constexpr Gamut ACES2065(0.73470f, 0.26530f, 0.f, 1.f, 0.0001f, -0.077f, 0.32168f, 0.33767f);
 static constexpr Gamut LMS(Matrix3(0.8951f, 0.2664f, -0.1614f, -0.7502f, 1.7135f, 0.0367f, 0.0389f, -0.0685f, 1.0296f)); // fromXYZ matrix.
+static constexpr Gamut XYZ(Matrix3(1, 0, 0, 0, 1, 0, 0, 0, 1));
 
 // returns Gamut convert matrix
 static constexpr Matrix3 GamutConvert(const Gamut &src, const Gamut &dst)

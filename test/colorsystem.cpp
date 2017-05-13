@@ -207,9 +207,9 @@ TEST_CASE("Spectrum")
     {
         const ColorSystem::Spectrum &  BB65(ColorSystem::Spectrum::blackbody(6504.f));
         const ColorSystem::Spectrum &  E(ColorSystem::Spectrum::E(1.f));
-        const ColorSystem::Tristimulus D65_Yxy = ColorSystem::CIEXYZ1931( ColorSystem::CIE_D65).toYxy();
-        const ColorSystem::Tristimulus BB65_Yxy = ColorSystem::CIEXYZ1931(BB65).toYxy();
-        const ColorSystem::Tristimulus E_Yxy   = ColorSystem::CIEXYZ1931(E).toYxy();
+        const ColorSystem::Tristimulus D65_Yxy = ColorSystem::CIE1931.fromSpectrum( ColorSystem::CIE_D65).toYxy();
+        const ColorSystem::Tristimulus BB65_Yxy = ColorSystem::CIE1931.fromSpectrum(BB65).toYxy();
+        const ColorSystem::Tristimulus E_Yxy   = ColorSystem::CIE1931.fromSpectrum(E).toYxy();
         REQUIRE(D65_Yxy[1] == Approx(ColorSystem::Illuminant_D65.toYxy()[1]).epsilon(1e-4f));
         REQUIRE(D65_Yxy[2] == Approx(ColorSystem::Illuminant_D65.toYxy()[2]).epsilon(1e-4f));
         REQUIRE(BB65_Yxy[1] == Approx(ColorSystem::Illuminant_D65.toYxy()[1]).epsilon(1e-2f)); // precision problem...
@@ -224,7 +224,7 @@ TEST_CASE("Macbeth")
     {
         for( const ColorSystem::Spectrum& s : ColorSystem::Macbeth::Patch )
         {
-            const ColorSystem::Tristimulus& xyz = ColorSystem::CIEXYZ1931( s * ColorSystem::CIE_D65 );
+            const ColorSystem::Tristimulus& xyz = ColorSystem::CIE1931.fromSpectrum( s * ColorSystem::CIE_D65 );
             const ColorSystem::Tristimulus& Yxy = xyz.toYxy();
             printf("%f,%f,%f\n",Yxy[0],Yxy[1],Yxy[2]); // TODO: check with D50 values.
         }
