@@ -743,9 +743,9 @@ class Spectrum
 class Observer
 {
   public:
-    Spectrum X_, Y_, Z_;
+    Spectrum    X_, Y_, Z_;
     Tristimulus normalize_;
-    constexpr Observer(const Spectrum &X, const Spectrum &Y, const Spectrum &Z) : X_(X), Y_(Y), Z_(Z), normalize_(1.f/X.sum(),1.f/Y.sum(),1.f/Z.sum()) { ; }
+    constexpr Observer(const Spectrum &X, const Spectrum &Y, const Spectrum &Z) : X_(X), Y_(Y), Z_(Z), normalize_(1.f / X.sum(), 1.f / Y.sum(), 1.f / Z.sum()) { ; }
     static constexpr Tristimulus SpectrumIntegrate(const Spectrum &s, const Spectrum &x, const Spectrum &y, const Spectrum &z)
     {
         return Tristimulus(Spectrum::dot(s, x), Spectrum::dot(s, y), Spectrum::dot(s, z));
@@ -1903,9 +1903,9 @@ namespace Macbeth
     // Brown skin, light skin, sky, folliage, ...
     static constexpr std::array<Spectrum, 24> Patch{
         Macbeth01, Macbeth02, Macbeth03, Macbeth04, Macbeth05, Macbeth06,
-        Macbeth01, Macbeth02, Macbeth03, Macbeth04, Macbeth05, Macbeth06,
-        Macbeth01, Macbeth02, Macbeth03, Macbeth04, Macbeth05, Macbeth06,
-        Macbeth01, Macbeth02, Macbeth03, Macbeth04, Macbeth05, Macbeth06,
+        Macbeth11, Macbeth12, Macbeth13, Macbeth14, Macbeth15, Macbeth16,
+        Macbeth21, Macbeth22, Macbeth23, Macbeth24, Macbeth25, Macbeth26,
+        Macbeth31, Macbeth32, Macbeth33, Macbeth34, Macbeth35, Macbeth36,
     };
 
 } // namespace Macbeth
