@@ -744,19 +744,15 @@ class Observer
 {
   public:
     Spectrum X_, Y_, Z_;
-    float    normalizeScale_;
-    constexpr Observer(const Spectrum &X, const Spectrum &Y, const Spectrum &Z) : X_(X), Y_(Y), Z_(Z), normalizeScale_(1.f / Y.sum()) { ; }
+    Tristimulus normalize_;
+    constexpr Observer(const Spectrum &X, const Spectrum &Y, const Spectrum &Z) : X_(X), Y_(Y), Z_(Z), normalize_(1.f/X.sum(),1.f/Y.sum(),1.f/Z.sum()) { ; }
     static constexpr Tristimulus SpectrumIntegrate(const Spectrum &s, const Spectrum &x, const Spectrum &y, const Spectrum &z)
     {
         return Tristimulus(Spectrum::dot(s, x), Spectrum::dot(s, y), Spectrum::dot(s, z));
     }
     constexpr Tristimulus fromSpectrum(const Spectrum &s) const
     {
-        return SpectrumIntegrate(s, X_, Y_, Z_) * normalizeScale_;
-    }
-    constexpr float normalizeScale(void) const
-    {
-        return normalizeScale_;
+        return SpectrumIntegrate(s, X_, Y_, Z_) * normalize_;
     }
 };
 
