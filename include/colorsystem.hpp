@@ -744,14 +744,15 @@ class Observer
 {
   public:
     Spectrum X_, Y_, Z_;
-    constexpr Observer(const Spectrum &X, const Spectrum &Y, const Spectrum &Z) : X_(X), Y_(Y), Z_(Z) { ; }
+    Tristimulus normalize_;
+    constexpr Observer(const Spectrum &X, const Spectrum &Y, const Spectrum &Z) : X_(X), Y_(Y), Z_(Z), normalize_(1.f/X.sum(),1.f/Y.sum(),1.f/Z.sum()) { ; }
     static constexpr Tristimulus SpectrumIntegrate(const Spectrum &s, const Spectrum &x, const Spectrum &y, const Spectrum &z)
     {
         return Tristimulus(Spectrum::dot(s, x), Spectrum::dot(s, y), Spectrum::dot(s, z));
     }
     constexpr Tristimulus fromSpectrum(const Spectrum &s) const
     {
-        return SpectrumIntegrate(s, X_, Y_, Z_);
+        return SpectrumIntegrate(s, X_, Y_, Z_) * normalize_;
     }
 };
 
@@ -1908,7 +1909,6 @@ namespace Macbeth
     };
 
 } // namespace Macbeth
-
 
 // Standard observers
 static constexpr Observer CIE1931(CIE1931_X, CIE1931_Y, CIE1931_Z);
