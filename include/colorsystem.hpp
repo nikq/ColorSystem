@@ -639,17 +639,23 @@ class Spectrum
         const int   index = (int)(count * (t - lo) / (hi - lo));
         const float l     = index * (hi - lo) / count;
         const float h     = (index + 1) * (hi - lo) / count;
-        return (index >= count) ? sample[count] : (index <= 0) ? sample[0] : lerp(sample[index], sample[index + 1], (t - l) / (h - l));
+        return (index >= count) ? sample[count] : (index <= 0) ? sample[0] : lerp(sample[index], sample[index + 1], (t - l - lo) / (h - l));
+    }
+    constexpr float fetch(const float &lambda) const
+    {
+        return fetch(s_.data(), 400, 380.f, 779.f, lambda);
     }
 
     Spectrum(
         const float *sample,
         const int    samples = 400,
         const float &lo      = 380.f,
-        const float &hi      = 780.f)
+        const float &hi      = 779.f)
     {
         for (int i = 0; i < 400; i++)
-            s_[i]  = fetch(sample, samples, lo, hi, 380.f + i);
+        {
+            s_[i] = fetch(sample, samples, lo, hi, 380.f + i);
+        }
     }
     constexpr float operator[](const int i) const
     {
@@ -753,6 +759,14 @@ class Observer
     constexpr Tristimulus fromSpectrum(const Spectrum &s) const
     {
         return SpectrumIntegrate(s, X_, Y_, Z_) * normalize_;
+    }
+    constexpr float lumensFromMonochromaticFlux(const float &lambda, const float &watt) const // return lm
+    {
+        return Y_.fetch(lambda) * watt * 683.0f; // photoptic luminance efficiency
+    }
+    constexpr Tristimulus candellasFromMonochromaticRadiance(const float &lambda, const float &watt_per_sr_m2) const // return cd/m^2
+    {
+        return Tristimulus(X_.fetch(lambda), Y_.fetch(lambda), Z_.fetch(lambda)) * 683.0f * watt_per_sr_m2;
     }
 };
 
