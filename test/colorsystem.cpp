@@ -2,33 +2,15 @@
 // "colorsystem"
 // copyright 2017 (c) Hajime UCHIMURA / @nikq
 // all rights reserved
-#include "colorsystem.hpp"
-#include "TestUtilities.hpp"
 #include "common.hpp"
+
+#include "TestUtilities.hpp"
+
+#include <colorsystem.hpp>
 
 namespace
 {
 const float epsilon = 0.000001f;
-}
-
-TEST_CASE("illuminants")
-{
-    const float                    EPS     = 1e-4f;
-    const ColorSystem::Tristimulus d65_Yxy = ColorSystem::Illuminant_D65.toYxy();
-    REQUIRE(d65_Yxy[1] == Approx(0.3127f).epsilon(EPS));
-    REQUIRE(d65_Yxy[2] == Approx(0.3290f).epsilon(EPS));
-
-    const ColorSystem::Tristimulus E_Yxy = ColorSystem::Illuminant_E.toYxy();
-    REQUIRE(E_Yxy[1] == Approx(1.f / 3.f).epsilon(EPS));
-    REQUIRE(E_Yxy[2] == Approx(1.f / 3.f).epsilon(EPS));
-
-    const ColorSystem::Tristimulus d50_Yxy = ColorSystem::Illuminant_D50.toYxy();
-    REQUIRE(d50_Yxy[1] == Approx(0.345703f).epsilon(EPS));
-    REQUIRE(d50_Yxy[2] == Approx(0.358539f).epsilon(EPS));
-
-    const ColorSystem::Tristimulus d60_Yxy = ColorSystem::Illuminant_D60.toYxy();
-    REQUIRE(d60_Yxy[1] == Approx(0.32168f).epsilon(EPS));
-    REQUIRE(d60_Yxy[2] == Approx(0.33767f).epsilon(EPS));
 }
 
 TEST_CASE("toXYZ", "[XYZ]")
@@ -118,128 +100,5 @@ TEST_CASE("fromYxy")
         auto const &             R_XYZ = R.fromYxy();
 
         REQUIRE_THAT(R_XYZ, IsApproxEquals(ColorSystem::Tristimulus{19.58f, 11.39f, 4.90f}, 1e-3f));
-    }
-}
-
-TEST_CASE("ACES2065")
-{
-    // http://www.oscars.org/science-technology/aces/aces-documentation
-    const float EPS = 1e-5f;
-    SECTION("toXYZ")
-    {
-        const ColorSystem::Matrix3 &ACES2065_to_XYZ = ColorSystem::ACES2065.toXYZ();
-        const ColorSystem::Matrix3  expected{0.9525523959f, 0.0000000000f, 0.0000936786f, 0.3439664498f, 0.7281660966f, -0.0721325464f, 0.0000000000f, 0.0000000000f, 1.0088251844f};
-        REQUIRE_THAT(ACES2065_to_XYZ, IsApproxEquals(expected, EPS));
-    }
-    SECTION("fromXYZ")
-    {
-        const ColorSystem::Matrix3 &ACES2065_from_XYZ = ColorSystem::ACES2065.fromXYZ();
-        const ColorSystem::Matrix3  expected{1.0498110175f, 0.0000000000f, -0.0000974845f, -0.4959030231f, 1.3733130458f, 0.0982400361f, 0.0000000000f, 0.0000000000f, 0.9912520182f};
-        REQUIRE_THAT(ACES2065_from_XYZ, IsApproxEquals(expected, EPS));
-    }
-}
-
-TEST_CASE("CIELAB")
-{
-    SECTION("toLAB")
-    {
-        const ColorSystem::Tristimulus XYZ1(0.4f, 0.5f, 0.6f);
-        const ColorSystem::Tristimulus XYZ2(0.7f, 0.6f, 0.5f);
-        const float                    EPS  = 1e-1f; // float is low precision... maybe?
-        auto const &                   LAB1 = XYZ1.toCIELAB();
-        auto const &                   LAB2 = XYZ2.toCIELAB();
-        REQUIRE_THAT(LAB1, IsApproxEquals(ColorSystem::Tristimulus{76.0693f, -23.9455f, -21.1024f}, EPS));
-        REQUIRE_THAT(LAB2, IsApproxEquals(ColorSystem::Tristimulus{81.8382f, 27.6605f, -0.5517f}, EPS));
-    }
-    SECTION("delta")
-    {
-        //http://qiita.com/tibigame/items/40ab217c863a20cdb264
-        const float                    EPS = 1e-6f;
-        const ColorSystem::Tristimulus LAB1(50.f, 2.6772f, -79.7751f);
-        const ColorSystem::Tristimulus LAB2(50.f, 0.0000f, -82.7485f);
-        const float                    de00 = ColorSystem::Delta::E00(LAB1, LAB2);
-        REQUIRE(de00 == Approx(2.0424596801565738f).epsilon(EPS));
-    }
-    SECTION("delta2")
-    {
-        const float EPS  = 1e-6f;
-        const float de00 = ColorSystem::Delta::E00(
-            ColorSystem::Tristimulus(50.f, 3.1571f, -77.2803f),
-            ColorSystem::Tristimulus(50.f, 0.0000f, -82.7485f));
-        REQUIRE(de00 == Approx(2.8615f).epsilon(EPS));
-    }
-}
-
-TEST_CASE("Matrices")
-{
-    SECTION("gamut_convert")
-    {
-        const float                 EPS = 1e-6f;
-        const ColorSystem::Matrix3 &ACES2065_to_ACEScg(ColorSystem::GamutConvert(ColorSystem::ACES2065, ColorSystem::ACEScg));
-        const ColorSystem::Matrix3  expected{
-            1.4514393161f, -0.2365107469f, -0.2149285693f,
-            -0.0765537734f, 1.1762296998f, -0.0996759264f,
-            0.0083161484f, -0.0060324498f, 0.9977163014f};
-        REQUIRE_THAT(ACES2065_to_ACEScg, IsApproxEquals(expected, EPS));
-    }
-
-    SECTION("bradford")
-    {
-        //http://w3.kcua.ac.jp/~fujiwara/infosci/colorspace/bradford.html
-        const float                 EPS = 1e-2f; // because some constants are differ from reference.
-        const ColorSystem::Matrix3 &adopt_D65_to_D50(ColorSystem::Bradford(ColorSystem::Illuminant_D65, ColorSystem::Illuminant_D50));
-        const ColorSystem::Matrix3  expected{
-            1.047886f, 0.022919f, -0.050216f,
-            0.029582f, 0.990484f, -0.017079f,
-            -0.009252f, 0.015073f, 0.751678f};
-        REQUIRE_THAT(adopt_D65_to_D50, IsApproxEquals(expected, EPS));
-    }
-}
-
-TEST_CASE("Spectrum")
-{
-    SECTION("blackbody")
-    {
-        const double planck6000 = ColorSystem::Spectrum::planck(6000., 380 * 1e-9 );
-        REQUIRE(planck6000 == Approx(27366).epsilon(1e2));
-    }
-    SECTION("toXYZ")
-    {
-        const ColorSystem::Spectrum &  BB65(ColorSystem::Spectrum::blackbody(6504.f));
-        const ColorSystem::Spectrum &  E(ColorSystem::Spectrum::E(1.f));
-        const ColorSystem::Tristimulus D65_Yxy = ColorSystem::CIE1931.fromSpectrum( ColorSystem::CIE_D65).toYxy();
-        const ColorSystem::Tristimulus BB65_Yxy = ColorSystem::CIE1931.fromSpectrum(BB65).toYxy();
-        const ColorSystem::Tristimulus E_Yxy   = ColorSystem::CIE1931.fromSpectrum(E).toYxy();
-        REQUIRE(D65_Yxy[1] == Approx(ColorSystem::Illuminant_D65.toYxy()[1]).epsilon(1e-4f));
-        REQUIRE(D65_Yxy[2] == Approx(ColorSystem::Illuminant_D65.toYxy()[2]).epsilon(1e-4f));
-        REQUIRE(BB65_Yxy[1] == Approx(ColorSystem::Illuminant_D65.toYxy()[1]).epsilon(1e-2f)); // precision problem...
-        REQUIRE(BB65_Yxy[2] == Approx(ColorSystem::Illuminant_D65.toYxy()[2]).epsilon(1e-2f));
-        REQUIRE(E_Yxy[1] == Approx(ColorSystem::Illuminant_E.toYxy()[1]).epsilon(1e-5f));
-        REQUIRE(E_Yxy[2] == Approx(ColorSystem::Illuminant_E.toYxy()[2]).epsilon(1e-5f));
-    }
-}
-TEST_CASE("Macbeth")
-{
-    SECTION("ChartToXYZ")
-    {
-        for( const ColorSystem::Spectrum& s : ColorSystem::Macbeth::Patch )
-        {
-            const ColorSystem::Tristimulus& xyz = ColorSystem::CIE1931.fromSpectrum( s * ColorSystem::CIE_D65 );
-            const ColorSystem::Tristimulus& Yxy = xyz.toYxy();
-            printf("%f,%f,%f\n",Yxy[0],Yxy[1],Yxy[2]); // TODO: check with D50 values.
-        }
-    }
-}
-TEST_CASE("Units")
-{
-    SECTION("lumens")
-    {
-        const float lumens555 = ColorSystem::CIE1931.lumensFromMonochromaticFlux( 555.0f, 1.0f );//
-        REQUIRE( lumens555 == Approx(683.0f).epsilon(1e-3f) );
-    }
-    SECTION("candellas")
-    {
-        const ColorSystem::Tristimulus cd_m2 = ColorSystem::CIE1931.candellasFromMonochromaticRadiance( 555.0f, 1.0f );
-        REQUIRE_THAT(cd_m2, IsApproxEquals(ColorSystem::Tristimulus{349.730225f,683.0f,3.927249f}, 1e-3f));
     }
 }

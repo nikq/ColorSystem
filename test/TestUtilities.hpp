@@ -6,6 +6,8 @@
 #include <iomanip>
 #include <iostream>
 
+#include <colorsystem.hpp>
+
 struct putFloat_
 {
     const float v_;
