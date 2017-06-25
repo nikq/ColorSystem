@@ -490,6 +490,41 @@ class Gamut
     {
         return Tristimulus(fromXYZ_.apply(tri.vec3()));
     }
+
+    constexpr Vector3 primaryVector(void) const
+    {
+        return Vector3(
+            toXYZ_[0] + toXYZ_[3] + toXYZ_[6],
+            toXYZ_[1] + toXYZ_[4] + toXYZ_[7],
+            toXYZ_[2] + toXYZ_[5] + toXYZ_[8]);
+    }
+    constexpr Matrix3 primaryMatrix(void) const
+    {
+        const Vector3 t(primaryVector());
+        return Matrix3(
+            toXYZ_[0] / t[0], toXYZ_[1] / t[1], toXYZ_[2] / t[2],
+            toXYZ_[3] / t[0], toXYZ_[4] / t[1], toXYZ_[5] / t[2],
+            toXYZ_[6] / t[0], toXYZ_[7] / t[1], toXYZ_[8] / t[2]);
+    }
+    constexpr Tristimulus primaryWhite() const
+    {
+        return Tristimulus(primaryMatrix().apply(primaryVector()));
+    }
+    constexpr Tristimulus primaryRed() const
+    {
+        const Matrix3 n(primaryMatrix());
+        return Tristimulus(n[0],n[3],n[6]);
+    }
+    constexpr Tristimulus primaryGreen() const
+    {
+        const Matrix3 n(primaryMatrix());
+        return Tristimulus(n[1],n[4],n[7]);
+    }
+    constexpr Tristimulus primaryBlue() const
+    {
+        const Matrix3 n(primaryMatrix());
+        return Tristimulus(n[2],n[5],n[8]);
+    }
 };
 
 class OTF
