@@ -42,6 +42,7 @@ class Matrix3
   private:
     static constexpr int M(const int x, const int y) { return x + y * 3; }
     static constexpr int I(const int y, const int x) { return ((x - 1) + (y - 1) * 3); }
+
   public:
     constexpr Matrix3(
         const float &a00, const float &a01, const float &a02,
@@ -359,14 +360,18 @@ class Tristimulus
     constexpr Tristimulus toCIELAB(void) const { return toCIELAB(*this, Tristimulus(0.9642f, 1.0f, 0.8249f)); }
     constexpr Tristimulus fromCIELAB(void) const { return fromCIELAB(*this, Tristimulus(0.9642f, 1.0f, 0.8249f)); }
     //HSV
-
+    static constexpr float round360(const float f)
+    {
+        return (f < 0.f) ? f + 360.f : f;
+    }
     static constexpr Tristimulus toHSV(const Tristimulus &t)
     {
         const float max = maxi(maxi(t[0], t[1]), t[2]);
         const float min = mini(mini(t[0], t[1]), t[2]);
         return Tristimulus(
-            ((max == min) ? 0.f : ((max == t[0]) ? (60.f * (t[1] - t[2]) / (max - min)) : ((max == t[1]) ? (60.f * (t[2] - t[0]) / (max - min) + 120.f) : (60.f * (t[0] - t[1]) / (max - min) + 240.f)))),
-            (max == 0.f) ? 0.f : (max - min) / max, max);
+            round360(((max == min) ? 0.f : ((max == t[0]) ? (60.f * (t[1] - t[2]) / (max - min)) : ((max == t[1]) ? (60.f * (t[2] - t[0]) / (max - min) + 120.f) : (60.f * (t[0] - t[1]) / (max - min) + 240.f))))),
+            (max == 0.f) ? 0.f : (max - min) / max,
+            max);
     }
     constexpr Tristimulus  toHSV(void) const { return toHSV(*this); }
     static constexpr float mod360(const float &r)
@@ -513,17 +518,17 @@ class Gamut
     constexpr Tristimulus primaryRed() const
     {
         const Matrix3 n(primaryMatrix());
-        return Tristimulus(n[0],n[3],n[6]);
+        return Tristimulus(n[0], n[3], n[6]);
     }
     constexpr Tristimulus primaryGreen() const
     {
         const Matrix3 n(primaryMatrix());
-        return Tristimulus(n[1],n[4],n[7]);
+        return Tristimulus(n[1], n[4], n[7]);
     }
     constexpr Tristimulus primaryBlue() const
     {
         const Matrix3 n(primaryMatrix());
-        return Tristimulus(n[2],n[5],n[8]);
+        return Tristimulus(n[2], n[5], n[8]);
     }
 };
 
