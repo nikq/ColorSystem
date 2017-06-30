@@ -360,24 +360,20 @@ class Tristimulus
     constexpr Tristimulus toCIELAB(void) const { return toCIELAB(*this, Tristimulus(0.9642f, 1.0f, 0.8249f)); }
     constexpr Tristimulus fromCIELAB(void) const { return fromCIELAB(*this, Tristimulus(0.9642f, 1.0f, 0.8249f)); }
     //HSV
-    static constexpr float round360(const float f)
+    static constexpr float mod360(const float &r)
     {
-        return (f < 0.f) ? f + 360.f : f;
+        return (r < 0.f) ? mod360(r + 360.f) : ((r > 360.f) ? mod360(r - 360.f) : r);
     }
     static constexpr Tristimulus toHSV(const Tristimulus &t)
     {
         const float max = maxi(maxi(t[0], t[1]), t[2]);
         const float min = mini(mini(t[0], t[1]), t[2]);
         return Tristimulus(
-            round360(((max == min) ? 0.f : ((max == t[0]) ? (60.f * (t[1] - t[2]) / (max - min)) : ((max == t[1]) ? (60.f * (t[2] - t[0]) / (max - min) + 120.f) : (60.f * (t[0] - t[1]) / (max - min) + 240.f))))),
+            mod360(((max == min) ? 0.f : ((max == t[0]) ? (60.f * (t[1] - t[2]) / (max - min)) : ((max == t[1]) ? (60.f * (t[2] - t[0]) / (max - min) + 120.f) : (60.f * (t[0] - t[1]) / (max - min) + 240.f))))),
             (max == 0.f) ? 0.f : (max - min) / max,
             max);
     }
     constexpr Tristimulus  toHSV(void) const { return toHSV(*this); }
-    static constexpr float mod360(const float &r)
-    {
-        return (r < 0.f) ? mod360(r + 360.f) : ((r > 360.f) ? mod360(r - 360.f) : r);
-    }
     static constexpr Tristimulus fromHSV(const Tristimulus &t)
     {
         const float h  = mod360(t[0]);
