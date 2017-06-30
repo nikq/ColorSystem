@@ -246,6 +246,10 @@ class Tristimulus
     }
     constexpr Tristimulus min(const Tristimulus &a) const { return min(*this, a); }
     constexpr Tristimulus max(const Tristimulus &a) const { return max(*this, a); }
+
+    constexpr float min(void) { return mini(mini(a(), b()), c()); }
+    constexpr float max(void) { return maxi(maxi(a(), b()), c()); }
+
     constexpr Tristimulus clip(const float &l, const float &h) const
     {
         return max(min(*this, Tristimulus(h)), Tristimulus(l));
@@ -373,7 +377,7 @@ class Tristimulus
             (max == 0.f) ? 0.f : (max - min) / max,
             max);
     }
-    constexpr Tristimulus  toHSV(void) const { return toHSV(*this); }
+    constexpr Tristimulus        toHSV(void) const { return toHSV(*this); }
     static constexpr Tristimulus fromHSV(const Tristimulus &t)
     {
         const float h  = mod360(t[0]);
