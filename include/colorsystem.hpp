@@ -15,6 +15,8 @@
 
 namespace ColorSystem
 {
+static const float PI = 3.14159265358979323846f;
+
 class Vector3
 {
   public:
@@ -31,6 +33,14 @@ class Vector3
     constexpr auto  size() const { return v_.size(); }
     auto            begin() const { return v_.begin(); }
     auto            end() const { return v_.end(); }
+    constexpr float dot(const Vector3 &a) const
+    {
+        return v_[0] * a[0] + v_[1] * a[1] + v_[2] * a[2];
+    }
+    static constexpr float dot(const Vector3 &a, const Vector3 &b)
+    {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    }
 };
 
 class Matrix3
@@ -58,6 +68,23 @@ class Matrix3
     {
         return m_[i];
     }
+
+    constexpr Vector3 row(const int i) const
+    {
+        return Vector3(m_[M(0, i)], m_[M(1, i)], m_[M(2, i)]);
+    }
+    constexpr Vector3 col(const int i) const
+    {
+        return Vector3(m_[M(i, 0)], m_[M(i, 1)], m_[M(i, 2)]);
+    }
+    static constexpr Matrix3 transpose(const Matrix3 &a)
+    {
+        return Matrix3(
+            a[M(0, 0)], a[M(0, 1)], a[M(0, 2)],
+            a[M(1, 0)], a[M(1, 1)], a[M(1, 2)],
+            a[M(2, 0)], a[M(2, 1)], a[M(2, 2)]);
+    }
+    constexpr Matrix3 transpose(void) const { return transpose(*this); }
 
     static constexpr Matrix3 mul(const Matrix3 &a, const Matrix3 &b)
     {
@@ -247,8 +274,8 @@ class Tristimulus
     constexpr Tristimulus min(const Tristimulus &a) const { return min(*this, a); }
     constexpr Tristimulus max(const Tristimulus &a) const { return max(*this, a); }
 
-    constexpr float min(void) { return mini(mini(a(), b()), c()); }
-    constexpr float max(void) { return maxi(maxi(a(), b()), c()); }
+    constexpr float min3(void) const { return mini(mini(a(), b()), c()); }
+    constexpr float max3(void) const { return maxi(maxi(a(), b()), c()); }
 
     constexpr Tristimulus clip(const float &l, const float &h) const
     {
@@ -368,6 +395,16 @@ class Tristimulus
     {
         return (r < 0.f) ? mod360(r + 360.f) : ((r > 360.f) ? mod360(r - 360.f) : r);
     }
+    static constexpr Tristimulus toHSV_atan(const Tristimulus &t)
+    {
+        const float max = maxi(maxi(t[0], t[1]), t[2]);
+        const float min = mini(mini(t[0], t[1]), t[2]);
+        return Tristimulus(
+            mod360((180.f / PI) * atan2(sqrtf(3.f) * (t[1] - t[2]), 2.f * t[0] - t[1] - t[2])),
+            (max == 0.f) ? 0.f : (max - min) / max,
+            max);
+    }
+    constexpr Tristimulus        toHSV_atan(void) const { return toHSV_atan(*this); }
     static constexpr Tristimulus toHSV(const Tristimulus &t)
     {
         const float max = maxi(maxi(t[0], t[1]), t[2]);
@@ -1989,8 +2026,8 @@ static constexpr Gamut Rec2020(0.708f, 0.292f, 0.17f, 0.797f, 0.131f, 0.046f, 0.
 static constexpr Gamut DCI_P3(0.68f, 0.32f, 0.265f, 0.69f, 0.15f, 0.06f, 0.314f, 0.351f);
 static constexpr Gamut S_Gamut(0.73f, 0.28f, 0.14f, 0.855f, 0.10f, -0.05f, 0.3127f, 0.3290f);
 static constexpr Gamut S_Gamut3_Cine(0.766f, 0.275f, 0.225f, 0.800f, 0.089f, -0.087f, 0.3127f, 0.3290f);
-static constexpr Gamut ACEScg(0.713f, 0.293f, 0.165f, 0.830f, 0.128f, 0.044f, 0.32168f, 0.33767f);
-static constexpr Gamut ACES2065(0.73470f, 0.26530f, 0.f, 1.f, 0.0001f, -0.077f, 0.32168f, 0.33767f);
+static constexpr Gamut ACEScg(0.713f, 0.293f, 0.165f, 0.830f, 0.128f, 0.044f, 0.32168f, 0.33767f); // AP1
+static constexpr Gamut ACES2065(0.73470f, 0.26530f, 0.f, 1.f, 0.0001f, -0.077f, 0.32168f, 0.33767f); // AP0
 static constexpr Gamut LMS(Matrix3(0.8951f, 0.2664f, -0.1614f, -0.7502f, 1.7135f, 0.0367f, 0.0389f, -0.0685f, 1.0296f)); // fromXYZ matrix.
 static constexpr Gamut XYZ(Matrix3(1, 0, 0, 0, 1, 0, 0, 0, 1));
 
