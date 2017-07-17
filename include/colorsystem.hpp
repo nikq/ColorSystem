@@ -301,9 +301,9 @@ class Tristimulus
     }
     static constexpr float z_from_xy(const float &x, const float &y) { return 1 - x - y; }
     static constexpr float X_from_Yxy(const float &Y, const float &x, const float &y) { return (Y < 1e-8f) ? 0.f : x * Y / y; }
-    static constexpr float Y_from_Yxy(const float &Y, const float &x, const float &y) { return (Y < 1e-8f) ? 0.f : Y; }
+    static constexpr float Y_from_Yxy(const float &Y, const float &x, const float &y) { (void)x;(void)y;return (Y < 1e-8f) ? 0.f : Y; }
     static constexpr float Z_from_Yxy(const float &Y, const float &x, const float &y) { return (Y < 1e-8f) ? 0.f : z_from_xy(x, y) * Y / y; }
-    static constexpr float Y_from_XYZ(const float &x, const float &y, const float &z) { return (y < 1e-8f) ? 0.f : y; }
+    static constexpr float Y_from_XYZ(const float &x, const float &y, const float &z) { (void)x;(void)z;return (y < 1e-8f) ? 0.f : y; }
     static constexpr float x_from_XYZ(const float &x, const float &y, const float &z) { return (y < 1e-8f) ? 0.3127f : x / (x + y + z); }
     static constexpr float y_from_XYZ(const float &x, const float &y, const float &z) { return (y < 1e-8f) ? 0.3290f : y / (x + y + z); }
     static constexpr Tristimulus fromYxy(const float &Y, const float &x, const float &y)
@@ -404,29 +404,45 @@ class Tristimulus
             (max == 0.f) ? 0.f : (max - min) / max,
             max);
     }
-    constexpr Tristimulus        toHSV_atan(void) const { return toHSV_atan(*this); }
+    constexpr Tristimulus toHSV_atan(void) const { return toHSV_atan(*this); }
     static constexpr Tristimulus toHSV(const Tristimulus &t)
     {
         const float max = maxi(maxi(t[0], t[1]), t[2]);
         const float min = mini(mini(t[0], t[1]), t[2]);
+        const float d   = max - min;
         return Tristimulus(
-            mod360(((max == min) ? 0.f : ((max == t[0]) ? (60.f * (t[1] - t[2]) / (max - min)) : ((max == t[1]) ? (60.f * (t[2] - t[0]) / (max - min) + 120.f) : (60.f * (t[0] - t[1]) / (max - min) + 240.f))))),
-            (max == 0.f) ? 0.f : (max - min) / max,
-            max);
+                    mod360(
+                        ((max == min) ? 0.f :
+                                        ((max == t[0]) ? (60.f * (t[1] - t[2]) / d) :
+                                        ((max == t[1]) ? (60.f * (t[2] - t[0]) / d + 120.f) :
+                                                         (60.f * (t[0] - t[1]) / d + 240.f))))),
+                    (max == 0.f) ? 0.f : d / max,
+                    max);
     }
-    constexpr Tristimulus        toHSV(void) const { return toHSV(*this); }
+
     static constexpr Tristimulus fromHSV(const Tristimulus &t)
     {
         const float h  = mod360(t[0]);
         const int   d  = (int)(h / 60.f);
         const int   i  = d % 6;
         const float r  = (h / 60.f) - d;
-        const float hi = t[2];
-        const float lo = t[2] * (1.f - t[1]);
-        const float m1 = lo + (hi - lo) * r;
-        const float m2 = hi + (hi - lo) * r;
-        return (i == 0) ? Tristimulus(hi, m1, lo) : ((i == 1) ? Tristimulus(m2, hi, lo) : ((i == 2) ? Tristimulus(lo, hi, m1) : ((i == 3) ? Tristimulus(lo, m2, hi) : ((i == 4) ? Tristimulus(m1, lo, hi) : ((i == 5) ? Tristimulus(hi, lo, m2) : Tristimulus(0, 0, 0))))));
+
+        const float s = t[1];
+        const float v = t[2];
+        const float m = v * (1.0f-s);
+        const float n = v * (1.0f-s*r);
+        const float p = v * (1.0f-s*(1.0f-r));
+
+        return (i == 0) ? Tristimulus(v,p,m) :
+               ((i == 1) ? Tristimulus(n,v,m) :
+               ((i == 2) ? Tristimulus(m,v,p) :
+               ((i == 3) ? Tristimulus(m,n,v) :
+               ((i == 4) ? Tristimulus(p,m,v) :
+               ((i == 5) ? Tristimulus(v,m,n) :
+                           Tristimulus(0, 0, 0))))));
     }
+
+    constexpr Tristimulus toHSV(void) const { return toHSV(*this); }
     constexpr Tristimulus fromHSV(void) const { return fromHSV(*this); }
 };
 
