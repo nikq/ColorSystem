@@ -301,9 +301,19 @@ class Tristimulus
     }
     static constexpr float z_from_xy(const float &x, const float &y) { return 1 - x - y; }
     static constexpr float X_from_Yxy(const float &Y, const float &x, const float &y) { return (Y < 1e-8f) ? 0.f : x * Y / y; }
-    static constexpr float Y_from_Yxy(const float &Y, const float &x, const float &y) { (void)x;(void)y;return (Y < 1e-8f) ? 0.f : Y; }
+    static constexpr float Y_from_Yxy(const float &Y, const float &x, const float &y)
+    {
+        (void)x;
+        (void)y;
+        return (Y < 1e-8f) ? 0.f : Y;
+    }
     static constexpr float Z_from_Yxy(const float &Y, const float &x, const float &y) { return (Y < 1e-8f) ? 0.f : z_from_xy(x, y) * Y / y; }
-    static constexpr float Y_from_XYZ(const float &x, const float &y, const float &z) { (void)x;(void)z;return (y < 1e-8f) ? 0.f : y; }
+    static constexpr float Y_from_XYZ(const float &x, const float &y, const float &z)
+    {
+        (void)x;
+        (void)z;
+        return (y < 1e-8f) ? 0.f : y;
+    }
     static constexpr float x_from_XYZ(const float &x, const float &y, const float &z) { return (y < 1e-8f) ? 0.3127f : x / (x + y + z); }
     static constexpr float y_from_XYZ(const float &x, const float &y, const float &z) { return (y < 1e-8f) ? 0.3290f : y / (x + y + z); }
     static constexpr Tristimulus fromYxy(const float &Y, const float &x, const float &y)
@@ -404,42 +414,33 @@ class Tristimulus
             (max == 0.f) ? 0.f : (max - min) / max,
             max);
     }
-    constexpr Tristimulus toHSV_atan(void) const { return toHSV_atan(*this); }
+    constexpr Tristimulus        toHSV_atan(void) const { return toHSV_atan(*this); }
     static constexpr Tristimulus toHSV(const Tristimulus &t)
     {
         const float max = maxi(maxi(t[0], t[1]), t[2]);
         const float min = mini(mini(t[0], t[1]), t[2]);
         const float d   = max - min;
         return Tristimulus(
-                    mod360(
-                        ((max == min) ? 0.f :
-                                        ((max == t[0]) ? (60.f * (t[1] - t[2]) / d) :
-                                        ((max == t[1]) ? (60.f * (t[2] - t[0]) / d + 120.f) :
-                                                         (60.f * (t[0] - t[1]) / d + 240.f))))),
-                    (max == 0.f) ? 0.f : d / max,
-                    max);
+            mod360(
+                ((max == min) ? 0.f : ((max == t[0]) ? (60.f * (t[1] - t[2]) / d) : ((max == t[1]) ? (60.f * (t[2] - t[0]) / d + 120.f) : (60.f * (t[0] - t[1]) / d + 240.f))))),
+            (max == 0.f) ? 0.f : d / max,
+            max);
     }
 
     static constexpr Tristimulus fromHSV(const Tristimulus &t)
     {
-        const float h  = mod360(t[0]);
-        const int   d  = (int)(h / 60.f);
-        const int   i  = d % 6;
-        const float r  = (h / 60.f) - d;
+        const float h = mod360(t[0]);
+        const int   d = (int)(h / 60.f);
+        const int   i = d % 6;
+        const float r = (h / 60.f) - d;
 
         const float s = t[1];
         const float v = t[2];
-        const float m = v * (1.0f-s);
-        const float n = v * (1.0f-s*r);
-        const float p = v * (1.0f-s*(1.0f-r));
+        const float m = v * (1.0f - s);
+        const float n = v * (1.0f - s * r);
+        const float p = v * (1.0f - s * (1.0f - r));
 
-        return (i == 0) ? Tristimulus(v,p,m) :
-               ((i == 1) ? Tristimulus(n,v,m) :
-               ((i == 2) ? Tristimulus(m,v,p) :
-               ((i == 3) ? Tristimulus(m,n,v) :
-               ((i == 4) ? Tristimulus(p,m,v) :
-               ((i == 5) ? Tristimulus(v,m,n) :
-                           Tristimulus(0, 0, 0))))));
+        return (i == 0) ? Tristimulus(v, p, m) : ((i == 1) ? Tristimulus(n, v, m) : ((i == 2) ? Tristimulus(m, v, p) : ((i == 3) ? Tristimulus(m, n, v) : ((i == 4) ? Tristimulus(p, m, v) : ((i == 5) ? Tristimulus(v, m, n) : Tristimulus(0, 0, 0))))));
     }
 
     constexpr Tristimulus toHSV(void) const { return toHSV(*this); }
@@ -594,6 +595,7 @@ class OTF
         SRGB,
         BT709,
         ST2084,
+        SLOG2,
         // OTF_HLG // Hybrid-log-gamma
     } TYPE;
 
@@ -644,7 +646,7 @@ class OTF
     }
     static const float sRGB_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
     {
-        return (C < 0.04045f) ? C / 12.92f : powf((C + 0.055f) / 1.055f, 2.4f);
+        return (C < 0.04045f) ? C / 12.92f : powf((C + 0.055f) / 1.055f, 2.4f) * 100.f;
     }
     static const float Y_to_BT709(const float &nits) // returns signal, 0-1, input nits [0-100]
     {
@@ -653,9 +655,33 @@ class OTF
     }
     static const float BT709_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
     {
-        return (C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f / 0.45f);
+        return (C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f / 0.45f) * 100.f;
     }
 
+    static const float CV_to_IRE_SLog2(const float &cv)
+    {
+        const float BLACK = 64.f / 1024.f;
+        const float WV    = 876.f / 1024.f; // 940-64
+        return (cv - BLACK) / WV;
+    }
+    static const float IRE_to_CV_SLog2(const float &ire)
+    {
+        const float BLACK = 64.f / 1024.f;
+        const float WV    = 876.f / 1024.f; // 940-64
+        return (ire * WV) + BLACK;
+    }
+    static const float Y_to_SLog2(const float &nits) // returns signal, 0-1, input nits [0-100]
+    {
+        const float x = nits / 100.f;
+        const float y = (x < 0.f) ? x * 3.53881278538813f + 0.030001222851889303f : (0.432699f * log10(155.0f * x / 219.0f + 0.037584f) + 0.616596f) + 0.03f;
+        return IRE_to_CV_SLog2(y);
+    }
+    static const float SLog2_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
+    {
+        const float x = CV_to_IRE_SLog2(C);
+        const float y = (x >= 0.030001222851889303f) ? 219.0f * (pow(10.0f, ((x - 0.616596f - 0.03f) / 0.432699f)) - 0.037584f) / 155.0f : (x - 0.030001222851889303f) / 3.53881278538813f;
+        return (y > 0.f) ? y * 100.f : 0.f;
+    }
     static const Tristimulus toScreen(TYPE type, const Tristimulus &scene, const float g = 1.f)
     {
         switch (type)
@@ -678,6 +704,11 @@ class OTF
         case ST2084:
         {
             return Tristimulus(Y_to_ST2084(scene[0]), Y_to_ST2084(scene[1]), Y_to_ST2084(scene[2]));
+        }
+        break;
+        case SLOG2:
+        {
+            return Tristimulus(Y_to_SLog2(scene[0]), Y_to_SLog2(scene[1]), Y_to_SLog2(scene[2]));
         }
         break;
         case LINEAR:
@@ -707,6 +738,10 @@ class OTF
         case ST2084:
         {
             return Tristimulus(ST2084_to_Y(screen[0]), ST2084_to_Y(screen[1]), ST2084_to_Y(screen[2]));
+        }
+        case SLOG2:
+        {
+            return Tristimulus(SLog2_to_Y(screen[0]), SLog2_to_Y(screen[1]), SLog2_to_Y(screen[2]));
         }
         break;
         case LINEAR:
