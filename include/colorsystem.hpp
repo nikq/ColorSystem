@@ -509,8 +509,9 @@ class Delta
 class Gamut
 {
   public:
-    Matrix3 toXYZ_;
-    Matrix3 fromXYZ_;
+    const char *name_;
+    Matrix3     toXYZ_;
+    Matrix3     fromXYZ_;
 
     static constexpr Matrix3 primMat(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB)
     {
@@ -528,15 +529,17 @@ class Gamut
     {
         return mulDiag(primMat(xR, yR, xG, yG, xB, yB), Tristimulus::fromYxy(1.f, xW, yW).vec3());
     }
-    constexpr Gamut(const Matrix3 &fromXYZ) : toXYZ_(fromXYZ.invert()), fromXYZ_(fromXYZ)
+    constexpr Gamut(const char *name, const Matrix3 &fromXYZ) : name_(name), toXYZ_(fromXYZ.invert()), fromXYZ_(fromXYZ)
     {
         ;
     }
-    constexpr Gamut(const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB, const float &xW, const float &yW)
-        : toXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW)), fromXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW).invert())
+    constexpr Gamut(const char *name, const float &xR, const float &yR, const float &xG, const float &yG, const float &xB, const float &yB, const float &xW, const float &yW)
+        : name_(name), toXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW)), fromXYZ_(fromPrimaries(xR, yR, xG, yG, xB, yB, xW, yW).invert())
     {
         ;
     }
+    const char *name(void) const { return name_; }
+
     constexpr Matrix3 toXYZ(void) const { return toXYZ_; }
     constexpr Matrix3 fromXYZ(void) const { return fromXYZ_; }
     constexpr Tristimulus
@@ -2073,16 +2076,16 @@ static constexpr Tristimulus Illuminant_F7(0.95041f, 1.f, 1.08747f);
 static constexpr Tristimulus Illuminant_F11(1.00962f, 1.f, 0.64350f);
 
 //xR,yR,xG,yG,xB,yB,xW,yW
-static constexpr Gamut AdobeRGB(0.64f, 0.33f, 0.21f, 0.71f, 0.15f, 0.06f, 0.3127f, 0.3290f);
-static constexpr Gamut Rec709(0.64f, 0.33f, 0.30f, 0.60f, 0.15f, 0.06f, 0.3127f, 0.3290f);
-static constexpr Gamut Rec2020(0.708f, 0.292f, 0.17f, 0.797f, 0.131f, 0.046f, 0.3127f, 0.3290f);
-static constexpr Gamut DCI_P3(0.68f, 0.32f, 0.265f, 0.69f, 0.15f, 0.06f, 0.314f, 0.351f);
-static constexpr Gamut S_Gamut(0.73f, 0.28f, 0.14f, 0.855f, 0.10f, -0.05f, 0.3127f, 0.3290f);
-static constexpr Gamut S_Gamut3_Cine(0.766f, 0.275f, 0.225f, 0.800f, 0.089f, -0.087f, 0.3127f, 0.3290f);
-static constexpr Gamut ACEScg(0.713f, 0.293f, 0.165f, 0.830f, 0.128f, 0.044f, 0.32168f, 0.33767f);                       // AP1
-static constexpr Gamut ACES2065(0.73470f, 0.26530f, 0.f, 1.f, 0.0001f, -0.077f, 0.32168f, 0.33767f);                     // AP0
-static constexpr Gamut LMS(Matrix3(0.8951f, 0.2664f, -0.1614f, -0.7502f, 1.7135f, 0.0367f, 0.0389f, -0.0685f, 1.0296f)); // fromXYZ matrix.
-static constexpr Gamut XYZ(Matrix3(1, 0, 0, 0, 1, 0, 0, 0, 1));
+static constexpr Gamut AdobeRGB("AdobeRGB", 0.64f, 0.33f, 0.21f, 0.71f, 0.15f, 0.06f, 0.3127f, 0.3290f);
+static constexpr Gamut Rec709("Rec.709", 0.64f, 0.33f, 0.30f, 0.60f, 0.15f, 0.06f, 0.3127f, 0.3290f);
+static constexpr Gamut Rec2020("Rec.2020", 0.708f, 0.292f, 0.17f, 0.797f, 0.131f, 0.046f, 0.3127f, 0.3290f);
+static constexpr Gamut DCI_P3("DCI P3", 0.68f, 0.32f, 0.265f, 0.69f, 0.15f, 0.06f, 0.314f, 0.351f);
+static constexpr Gamut S_Gamut("S-Gamut", 0.73f, 0.28f, 0.14f, 0.855f, 0.10f, -0.05f, 0.3127f, 0.3290f);
+static constexpr Gamut S_Gamut3_Cine("S-Gamut3.Cine", 0.766f, 0.275f, 0.225f, 0.800f, 0.089f, -0.087f, 0.3127f, 0.3290f);
+static constexpr Gamut ACEScg("ACES cg", 0.713f, 0.293f, 0.165f, 0.830f, 0.128f, 0.044f, 0.32168f, 0.33767f);                   // AP1
+static constexpr Gamut ACES2065("ACES 2065", 0.73470f, 0.26530f, 0.f, 1.f, 0.0001f, -0.077f, 0.32168f, 0.33767f);               // AP0
+static constexpr Gamut LMS("LMS", Matrix3(0.8951f, 0.2664f, -0.1614f, -0.7502f, 1.7135f, 0.0367f, 0.0389f, -0.0685f, 1.0296f)); // fromXYZ matrix.
+static constexpr Gamut XYZ("XYZ", Matrix3(1, 0, 0, 0, 1, 0, 0, 0, 1));
 
 // returns Gamut convert matrix
 static constexpr Matrix3 GamutConvert(const Gamut &src, const Gamut &dst)
