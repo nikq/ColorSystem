@@ -405,7 +405,7 @@ class Tristimulus
     {
         return (r < 0.f) ? mod360(r + 360.f) : ((r > 360.f) ? mod360(r - 360.f) : r);
     }
-    static constexpr Tristimulus toHSV_atan(const Tristimulus &t)
+    static Tristimulus toHSV_atan(const Tristimulus &t)
     {
         const float max = maxi(maxi(t[0], t[1]), t[2]);
         const float min = mini(mini(t[0], t[1]), t[2]);
@@ -414,7 +414,7 @@ class Tristimulus
             (max == 0.f) ? 0.f : (max - min) / max,
             max);
     }
-    constexpr Tristimulus        toHSV_atan(void) const { return toHSV_atan(*this); }
+    Tristimulus        toHSV_atan(void) const { return toHSV_atan(*this); }
     static constexpr Tristimulus toHSV(const Tristimulus &t)
     {
         const float max = maxi(maxi(t[0], t[1]), t[2]);
