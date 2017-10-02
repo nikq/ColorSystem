@@ -543,15 +543,13 @@ class Gamut
     }
     const char *name(void) const { return name_; }
 
-    constexpr Matrix3 toXYZ(void) const { return toXYZ_; }
-    constexpr Matrix3 fromXYZ(void) const { return fromXYZ_; }
-    constexpr Tristimulus
-    toXYZ(const Tristimulus &tri) const
+    constexpr Matrix3     toXYZ(void) const { return toXYZ_; }
+    constexpr Matrix3     fromXYZ(void) const { return fromXYZ_; }
+    constexpr Tristimulus toXYZ(const Tristimulus &tri) const
     {
         return Tristimulus(toXYZ_.apply(tri.vec3()));
     }
-    constexpr Tristimulus
-    fromXYZ(const Tristimulus &tri) const
+    constexpr Tristimulus fromXYZ(const Tristimulus &tri) const
     {
         return Tristimulus(fromXYZ_.apply(tri.vec3()));
     }
@@ -880,11 +878,11 @@ class Spectrum
     {
         return dotHelper(*this, s, 399);
     }
-    static constexpr float dotHelper3(const Spectrum &a, const Spectrum &b, const Spectrum& c, const int i)
+    static constexpr float dotHelper3(const Spectrum &a, const Spectrum &b, const Spectrum &c, const int i)
     {
         return (i > 0) ? a[i] * b[i] * c[i] + dotHelper3(a, b, c, i - 1) : a[0] * b[0] * c[0];
     }
-    static constexpr float dot3(const Spectrum &a, const Spectrum &b, const Spectrum& c)
+    static constexpr float dot3(const Spectrum &a, const Spectrum &b, const Spectrum &c)
     {
         return dotHelper3(a, b, c, 399);
     }
@@ -900,17 +898,17 @@ class Observer
     {
         return Tristimulus(Spectrum::dot(s, x), Spectrum::dot(s, y), Spectrum::dot(s, z));
     }
-    static constexpr Tristimulus SpectrumIntegrate3(const Spectrum &r, const Spectrum& l, const Spectrum &x, const Spectrum &y, const Spectrum &z)
+    static constexpr Tristimulus SpectrumIntegrate3(const Spectrum &r, const Spectrum &l, const Spectrum &x, const Spectrum &y, const Spectrum &z)
     {
-        return Tristimulus(Spectrum::dot3(r,l, x), Spectrum::dot3(r,l, y), Spectrum::dot3(r,l,z));
+        return Tristimulus(Spectrum::dot3(r, l, x), Spectrum::dot3(r, l, y), Spectrum::dot3(r, l, z));
     }
     constexpr Tristimulus fromSpectrum(const Spectrum &s) const
     {
         return SpectrumIntegrate(s, X_, Y_, Z_) * normalize_;
     }
-    constexpr Tristimulus fromReflectanceAndLight(const Spectrum &r,const Spectrum& l) const // r:reflectance, l:light
+    constexpr Tristimulus fromReflectanceAndLight(const Spectrum &r, const Spectrum &l) const // r:reflectance, l:light
     {
-        return SpectrumIntegrate3(r,l, X_, Y_, Z_) * normalize_;
+        return SpectrumIntegrate3(r, l, X_, Y_, Z_) * normalize_;
     }
     constexpr float lumensFromMonochromaticFlux(const float &lambda, const float &watt) const // return lm
     {
@@ -2234,11 +2232,12 @@ namespace Macbeth
         Macbeth31, Macbeth32, Macbeth33, Macbeth34, Macbeth35, Macbeth36,
     };
 
-    static std::vector<Tristimulus> reference( const Spectrum& light, const Observer& obs = CIE1931 )
+    static std::vector<Tristimulus> reference(const Spectrum &light, const Observer &obs = CIE1931)
     {
-        std::vector<Tristimulus> result( Patch.size() );
-        for(int i=0;i<Patch.size();i++){
-            result[i] = obs.fromReflectanceAndLight( Patch[i], light );
+        std::vector<Tristimulus> result(Patch.size());
+        for (int i = 0; i < Patch.size(); i++)
+        {
+            result[i] = obs.fromReflectanceAndLight(Patch[i], light);
         }
         return result;
     }
@@ -2650,20 +2649,18 @@ namespace SOLVER
 class Corrector
 {
   public:
-    Matrix3 matrix_;
-
     Corrector() { ; }
     virtual ~Corrector() { ; }
 
-    int solve(std::vector<Tristimulus> &patch, std::vector<Tristimulus> &target)
+    static Matrix3 solve(std::vector<Tristimulus> &patch, std::vector<Tristimulus> &target)
     {
         // M*A = B, M and B are known. solve A.
         int row_count = (int)(patch.size() + 1) * 3; // forex, (24+1)*3 = 75
         int col_count = 9;
 
-        SOLVER::Matrix matrix(row_count, col_count); // M.
-        SOLVER::Vector result(row_count);            // B.
-        SOLVER::Vector x(col_count);
+        SOLVER::Matrix matrix(row_count, col_count); // M. (75*9)
+        SOLVER::Vector result(row_count);            // B.  75
+        SOLVER::Vector x(col_count);                 // A.     9
 
         for (int i = 0; i < patch.size() * 3; i += 3)
         {
@@ -2688,7 +2685,7 @@ class Corrector
             result[i + 2]            = target[(i / 3)][2];
         }
 
-        // 0拘束.
+        // 0 restrction.
         {
             int i = (int)patch.size() * 3;
             for (int c = 0; c < col_count; c++)
@@ -2712,12 +2709,17 @@ class Corrector
         }
 
         SOLVER::solve(matrix, result, x);
-        matrix_ = Matrix3::fromArray(x.data());
-        return 0;
+        return Matrix3::fromArray(x.data());
     }
 
-    int solve( std::vector<Tristimulus>& patch , const Spectrum& light = CIE_D65, const Observer &observer = CIE1931){
-        return solve( patch, Macbeth::reference(light, observer));
+    static Matrix3 solve(std::vector<Tristimulus> &patch, const Spectrum &light = CIE_D65, const Observer &observer = CIE1931)
+    {
+        return solve(patch, Macbeth::reference(light, observer));
+    }
+
+    static Gamut makeGamut(const char *name, std::vector<Tristimulus> &patch, const Spectrum &light = CIE_D65, const Observer &observer = CIE1931)
+    {
+        return Gamut(name, solve(patch, light, observer));
     }
 };
 
