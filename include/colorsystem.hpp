@@ -6,6 +6,7 @@
 //
 
 #include <array>
+#include <algorithm>
 #include <vector>
 #include <assert.h>
 #include <math.h>
@@ -2650,8 +2651,8 @@ namespace SOLVER
 class Corrector
 {
   public:
-    Corrector() { ; }
-    virtual ~Corrector() { ; }
+    Corrector() = default ;
+    virtual ~Corrector() = default ;
 
     static Matrix3 solve(const std::vector<Tristimulus> &patch, const std::vector<Tristimulus> &target)
     {
