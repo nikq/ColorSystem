@@ -414,7 +414,7 @@ class Tristimulus
         const float max = maxi(maxi(t[0], t[1]), t[2]);
         const float min = mini(mini(t[0], t[1]), t[2]);
         return Tristimulus(
-            mod360((180.f / PI) * atan2(sqrtf(3.f) * (t[1] - t[2]), 2.f * t[0] - t[1] - t[2])),
+            mod360((180.f / PI) * atan2f(sqrtf(3.f) * (t[1] - t[2]), 2.f * t[0] - t[1] - t[2])),
             (max == 0.f) ? 0.f : (max - min) / max,
             max);
     }
@@ -486,8 +486,8 @@ class Delta
         const float Cd1        = sqrtf(ad1 * ad1 + b1 * b1);
         const float Cd2        = sqrtf(ad2 * ad2 + b2 * b2);
         const float CdBar      = (Cd1 + Cd2) / 2.f;
-        const float h1         = fmod(360.f + atan2f(b1, ad1) * 180.0f / PI, 360.f);
-        const float h2         = fmod(360.f + atan2f(b2, ad2) * 180.0f / PI, 360.f);
+        const float h1         = fmodf(360.f + atan2f(b1, ad1) * 180.0f / PI, 360.f);
+        const float h2         = fmodf(360.f + atan2f(b2, ad2) * 180.0f / PI, 360.f);
         const float HdBar      = (fabs(h1 - h2) > 180.f ? (h1 + h2 + 360.f) : (h1 + h2)) / 2.f;
         const float T          = 1.f - 0.17f * cosf(PI * (1.f * HdBar - 30.f) / 180.f) + 0.24f * cosf(PI * (2.f * HdBar) / 180.f) + 0.32f * cosf(PI * (3.f * HdBar + 6.f) / 180.f) - 0.20f * cosf(PI * (4.f * HdBar - 63.f) / 180.f);
         const float deltah     = (fabs(h2 - h1) <= 180.f) ? h2 - h1 : ((h2 <= h1) ? h2 - h1 + 360.f : h2 - h1 - 360.f);
@@ -608,12 +608,12 @@ class OTF
     static float degamma(const float &v, const float &g) { return powf(v, g); }
     static const float ST2084_to_Y(const float &pixel) // pixel should be 0-1
     {
-        const float pq_m1 = 0.1593017578125; // ( 2610.0 / 4096.0 ) / 4.0;
-        const float pq_m2 = 78.84375;        // ( 2523.0 / 4096.0 ) * 128.0;
-        const float pq_c1 = 0.8359375;       // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
-        const float pq_c2 = 18.8515625;      // ( 2413.0 / 4096.0 ) * 32.0;
-        const float pq_c3 = 18.6875;         // ( 2392.0 / 4096.0 ) * 32.0;
-        const float pq_C  = 10000.0;
+        const float pq_m1 = 0.1593017578125f;   // ( 2610.0 / 4096.0 ) / 4.0;
+        const float pq_m2 = 78.84375f;          // ( 2523.0 / 4096.0 ) * 128.0;
+        const float pq_c1 = 0.8359375f;         // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
+        const float pq_c2 = 18.8515625f;        // ( 2413.0 / 4096.0 ) * 32.0;
+        const float pq_c3 = 18.6875f;           // ( 2392.0 / 4096.0 ) * 32.0;
+        const float pq_C  = 10000.0f;
 
         // Note that this does NOT handle any of the signal range
         // considerations from 2084 - this assumes full range (0 - 1)
@@ -629,12 +629,12 @@ class OTF
     {
         if (nit <= 0.f)
             return 0.f;
-        const float pq_m1 = 0.1593017578125; // ( 2610.0 / 4096.0 ) / 4.0;
-        const float pq_m2 = 78.84375;        // ( 2523.0 / 4096.0 ) * 128.0;
-        const float pq_c1 = 0.8359375;       // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
-        const float pq_c2 = 18.8515625;      // ( 2413.0 / 4096.0 ) * 32.0;
-        const float pq_c3 = 18.6875;         // ( 2392.0 / 4096.0 ) * 32.0;
-        const float pq_C  = 10000.0;
+        const float pq_m1 = 0.1593017578125f;   // ( 2610.0 / 4096.0 ) / 4.0;
+        const float pq_m2 = 78.84375f;          // ( 2523.0 / 4096.0 ) * 128.0;
+        const float pq_c1 = 0.8359375f;         // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
+        const float pq_c2 = 18.8515625f;        // ( 2413.0 / 4096.0 ) * 32.0;
+        const float pq_c3 = 18.6875f;           // ( 2392.0 / 4096.0 ) * 32.0;
+        const float pq_C  = 10000.0f;
 
         // Note that this does NOT handle any of the signal range
         // considerations from 2084 - this returns full range (0 - 1)
@@ -678,13 +678,13 @@ class OTF
     static const float Y_to_SLog2(const float &nits) // returns signal, 0-1, input nits [0-100]
     {
         const float x = nits / 100.f;
-        const float y = (x < 0.f) ? x * 3.53881278538813f + 0.030001222851889303f : (0.432699f * log10(155.0f * x / 219.0f + 0.037584f) + 0.616596f) + 0.03f;
+        const float y = (x < 0.f) ? x * 3.53881278538813f + 0.030001222851889303f : (0.432699f * log10f(155.0f * x / 219.0f + 0.037584f) + 0.616596f) + 0.03f;
         return IRE_to_CV_SLog2(y);
     }
     static const float SLog2_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
     {
         const float x = CV_to_IRE_SLog2(C);
-        const float y = (x >= 0.030001222851889303f) ? 219.0f * (pow(10.0f, ((x - 0.616596f - 0.03f) / 0.432699f)) - 0.037584f) / 155.0f : (x - 0.030001222851889303f) / 3.53881278538813f;
+        const float y = (x >= 0.030001222851889303f) ? 219.0f * (powf(10.0f, ((x - 0.616596f - 0.03f) / 0.432699f)) - 0.037584f) / 155.0f : (x - 0.030001222851889303f) / 3.53881278538813f;
         return (y > 0.f) ? y * 100.f : 0.f;
     }
     static const Tristimulus toScreen(TYPE type, const Tristimulus &scene, const float g = 1.f)
@@ -2296,12 +2296,12 @@ namespace SOLVER
 
     static inline float DSIGN(float a, float b)
     {
-        return (b > 0.f) ? fabs(a) : -fabs(a);
+        return (b > 0.f) ? fabsf(a) : -fabsf(a);
     }
     static inline float PYTHAG(float a, float b)
     {
-        float at = fabs(a);
-        float bt = fabs(b);
+        float at = fabsf(a);
+        float bt = fabsf(b);
         if (at > bt)
         {
             float ct = bt / at;
@@ -2350,7 +2350,7 @@ namespace SOLVER
                         s += (a[k][i] * a[k][i]);
                     }
                     f       = a[i][i];
-                    g       = -DSIGN(sqrt(s), f);
+                    g       = -DSIGN(sqrtf(s), f);
                     h       = f * g - s;
                     a[i][i] = (f - g);
                     if (i != n - 1)
@@ -2384,7 +2384,7 @@ namespace SOLVER
                         s += (a[i][k] * a[i][k]);
                     }
                     f       = a[i][l];
-                    g       = -DSIGN(sqrt(s), f);
+                    g       = -DSIGN(sqrtf(s), f);
                     h       = f * g - s;
                     a[i][l] = (f - g);
                     for (k     = l; k < n; k++)
@@ -2403,7 +2403,7 @@ namespace SOLVER
                         a[i][k] = (a[i][k] * scale);
                 }
             }
-            anorm = std::max(anorm, (fabs(w[i]) + fabs(rv1[i])));
+            anorm = std::max(anorm, (fabsf(w[i]) + fabsf(rv1[i])));
         }
 
         /* accumulate the right-hand transformation */
@@ -2605,7 +2605,7 @@ namespace SOLVER
             float s = 0.0;
             for (int jj = 0; jj < n; jj++)
                 s += v[j][jj] * tmp[jj];
-            x[j] = (float)s;
+            x[j] = s;
         }
     }
 
