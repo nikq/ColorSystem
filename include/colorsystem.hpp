@@ -2653,7 +2653,7 @@ class Corrector
     Corrector() { ; }
     virtual ~Corrector() { ; }
 
-    static Matrix3 solve(std::vector<Tristimulus> &patch, std::vector<Tristimulus> &target)
+    static Matrix3 solve(const std::vector<Tristimulus> &patch, const std::vector<Tristimulus> &target)
     {
         // M*A = B, M and B are known. solve A.
         int row_count = (int)(patch.size() + 1) * 3; // forex, (24+1)*3 = 75
