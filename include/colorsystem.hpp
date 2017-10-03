@@ -2686,7 +2686,7 @@ class Corrector
             result[i + 2]            = target[(i / 3)][2];
         }
 
-        // 0 restrction.
+        // 0 restriction.
         {
             int i = (int)patch.size() * 3;
             for (int c = 0; c < col_count; c++)
