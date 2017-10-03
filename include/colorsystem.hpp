@@ -4,6 +4,9 @@
 //
 // policy: currently single-headered, simple, low overhead, no ICC support.
 //
+#pragma once
+#ifndef colorsystem_hpp__abf47c16efbc4a80838738ff9b8a0eea
+#define colorsystem_hpp__abf47c16efbc4a80838738ff9b8a0eea   1
 
 #include <array>
 #include <algorithm>
@@ -11,8 +14,6 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
-
-#pragma once
 
 namespace ColorSystem
 {
@@ -2726,3 +2727,5 @@ class Corrector
 };
 
 } // namespace ColorSystem
+
+#endif /* colorsystem_hpp__abf47c16efbc4a80838738ff9b8a0eea */
