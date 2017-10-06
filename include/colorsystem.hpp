@@ -2620,7 +2620,7 @@ namespace SOLVER
         float  wmax, thresh;
 
         int r = svdcmp(A, W, V);
-        if (r = 0)
+        if (r == 0)
         {
             return r;
         }
