@@ -6,6 +6,7 @@
 //
 
 #include <array>
+#include <vector>
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
