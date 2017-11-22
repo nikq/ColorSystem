@@ -14,9 +14,36 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <limits>
 
 namespace ColorSystem
 {
+
+namespace util
+{
+    namespace Detail
+    {
+        float constexpr sqrtNewtonRaphsonF(float x, float curr, float prev)
+        {
+            return curr == prev ? curr : sqrtNewtonRaphsonF(x, 0.5f * (curr + x / curr), curr);
+        }
+    }
+
+    /*
+    * Constexpr version of the square root
+    * Return value:
+    *   - For a finite and non-negative value of "x", returns an approximation for the square root of "x"
+    *   - Otherwise, returns NaN
+    */
+    //https://stackoverflow.com/questions/8622256/in-c11-is-sqrt-defined-as-constexpr
+    float constexpr sqrtf(float x)
+    {
+        return x >= 0.f && x < std::numeric_limits<float>::infinity()
+                   ? Detail::sqrtNewtonRaphsonF(x, x, 0.f)
+                   : std::numeric_limits<float>::quiet_NaN();
+    }
+}
+
 static const float PI = 3.14159265358979323846f;
 
 class Vector3
@@ -326,7 +353,6 @@ class Tristimulus
     {
         return Tristimulus(X_from_Yxy(Y, x, y), Y_from_Yxy(Y, x, y), Z_from_Yxy(Y, x, y));
     }
-
     static constexpr Tristimulus toYxy(const float &X, const float &Y, const float &Z)
     {
         return Tristimulus(Y_from_XYZ(X, Y, Z), x_from_XYZ(X, Y, Z), y_from_XYZ(X, Y, Z));
@@ -369,6 +395,63 @@ class Tristimulus
     }
     constexpr Tristimulus toYuv(void) const { return toYuv(*this); }
     constexpr Tristimulus fromYuv(void) const { return fromYuv(*this); }
+    
+    // uv only used in CCT.
+    static constexpr float blackbody_x_approx(const float &T)
+    {
+        return (float)(0.811973208 + T * (-0.00016747 + T * (0.00000000331067 + T * (0.00000000000690001 + T * (-1.39671E-15 + T * (1.11951E-19 + T * -3.31672E-24))))));
+    }
+    static constexpr float blackbody_y_approx(const float &T)
+    {
+        return (float)(0.136977825 + T * (0.000317653 + T * (-0.000000127946 + T * (0.0000000000222415 + T * (-1.81438E-15 + T * 5.67564E-20)))));
+    }
+    // XYZ from Color Temperature with Y.
+    // cubic spline approx https://en.wikipedia.org/wiki/Planckian_locus#Approximation
+    static constexpr Tristimulus fromPlanckianLocus(const float &T, const float &Y = 1.f)
+    {
+        const float x = (T < 4000.f) ? ((-0.2661239e9f / (T * T * T)) - (0.2343580e6f / (T * T)) + (0.8776956e3f / T) + 0.179910f) : ((-3.0258469e9f / (T * T * T)) + (2.1070379e6f / (T * T)) + (0.2226347e3f / T) + 0.240390f);
+        const float y = (T < 2222.f) ? ((-1.1063814f * x * x * x) - (1.34811020f * x * x) + (2.18555832f * x) - 0.20219683f) : ((T < 4000.f) ? ((-1.1063814f * x * x * x - 1.34811020f * x * x + 2.18555832f * x - 0.20219683f)) : ((3.0817580f * x * x * x - 5.87338670f * x * x + 3.75112997f * x - 0.37001483f)));
+        return Tristimulus(Y, x, y).fromYxy();
+    }
+    static constexpr Tristimulus fromCT(const float &T, const float Y = 1.f)
+    {
+        return Tristimulus(Y, blackbody_x_approx(T), blackbody_y_approx(T)).fromYxy();
+    }
+    static constexpr float CCT_x_approx(const float &T, const float &dUV)
+    {
+        const float x1 = blackbody_x_approx(T);
+        const float y1 = blackbody_y_approx(T);
+        const float u1 = u_from_xy(x1, y1);
+        const float v1 = v_from_xy(x1, y1);
+        const float x2 = blackbody_x_approx(T-1.f);
+        const float y2 = blackbody_y_approx(T-1.f);
+        const float u2 = u_from_xy(x2, y2);
+        const float v2 = v_from_xy(x2, y2);
+        const float du = u2 - u1;
+        const float dv = v2 - v1;
+        const float l  = util::sqrtf(du * du + dv * dv);
+        return x_from_uv(u1 - dUV * du / l, v1 + dUV * dv / l);
+    }
+    static constexpr float CCT_y_approx(const float &T, const float &dUV)
+    {
+        const float x1 = blackbody_x_approx(T);
+        const float y1 = blackbody_y_approx(T);
+        const float u1 = u_from_xy(x1, y1);
+        const float v1 = v_from_xy(x1, y1);
+        const float x2 = blackbody_x_approx(T - 1.f);
+        const float y2 = blackbody_y_approx(T - 1.f);
+        const float u2 = u_from_xy(x2, y2);
+        const float v2 = v_from_xy(x2, y2);
+        const float du = u2 - u1;
+        const float dv = v2 - v1;
+        const float l  = util::sqrtf(du * du + dv * dv);
+        return y_from_uv(u1 - dUV * du / l, v1 + dUV * dv / l);
+    }
+    static constexpr Tristimulus fromCCT(const float &T, const float &dUV, const float Y = 1.f)
+    {
+        return Tristimulus(Y, CCT_x_approx(T,dUV), CCT_y_approx(T,dUV)).fromYuv();
+    }
+
     // Lab
     static constexpr float CIELAB_curve(const float &f)
     {
@@ -1353,17 +1436,6 @@ static constexpr Matrix3 Bradford(const Tristimulus &white_src, const Tristimulu
                 lms_dst[1] / lms_src[1],
                 lms_dst[2] / lms_src[2])));
     return LMS.toXYZ().mul(scale).mul(LMS.fromXYZ());
-}
-
-// cubic spline approx https://en.wikipedia.org/wiki/Planckian_locus#Approximation
-static constexpr Tristimulus PlanckianLocus(const float &T, const float &Y = 1.f)
-{
-    const float x = (T < 4000.f) ? ((-0.2661239e9f / (T * T * T)) - (0.2343580e6f / (T * T)) + (0.8776956e3f / T) + 0.179910f)
-                                 : ((-3.0258469e9f / (T * T * T)) + (2.1070379e6f / (T * T)) + (0.2226347e3f / T) + 0.240390f);
-    const float y = (T < 2222.f) ? ((-1.1063814f * x * x * x) - (1.34811020f * x * x) + (2.18555832f * x) - 0.20219683f)
-                                 : ((T < 4000.f) ? ((-1.1063814f * x * x * x - 1.34811020f * x * x + 2.18555832f * x - 0.20219683f))
-                                                 : ((3.0817580f * x * x * x - 5.87338670f * x * x + 3.75112997f * x - 0.37001483f)));
-    return Tristimulus(Y, x, y).fromYxy();
 }
 
 // ------------------- implements macbeth chart.

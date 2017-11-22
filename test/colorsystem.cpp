@@ -98,3 +98,21 @@ TEST_CASE("fromYxy")
         REQUIRE_THAT(R_XYZ, IsApproxEquals(ColorSystem::Tristimulus{19.58f, 11.39f, 4.90f}, 1e-3f));
     }
 }
+
+TEST_CASE("fromCT")
+{
+    SECTION("1931 6500K = 0.3127 0.3290, WP approx")
+    {
+        ColorSystem::Tristimulus W = ColorSystem::Tristimulus::fromPlanckianLocus(6504.f);
+        auto const &             W_Yxy = W.toYxy();
+        printf("%f,%f,%f\n",W_Yxy[0],W_Yxy[1],W_Yxy[2]);
+        REQUIRE_THAT(W_Yxy, IsApproxEquals(ColorSystem::Tristimulus{1.00f, 0.3127f, 0.3290f}, 1e-2f)); // this approximation is not precise.
+    }
+    SECTION("1931 6500K = 0.3127 0.3290, our approx")
+    {
+        ColorSystem::Tristimulus W     = ColorSystem::Tristimulus::fromCT(6504.f);
+        auto const &             W_Yxy = W.toYxy();
+        printf("%f,%f,%f\n", W_Yxy[0], W_Yxy[1], W_Yxy[2]);
+        REQUIRE_THAT(W_Yxy, IsApproxEquals(ColorSystem::Tristimulus{1.00f, 0.3127f, 0.3290f}, 1e-2f)); // this approximation is not precise.
+    }
+}
