@@ -23,7 +23,7 @@ TEST_CASE("CIELAB")
         const ColorSystem::Tristimulus LAB1(50.f, 2.6772f, -79.7751f);
         const ColorSystem::Tristimulus LAB2(50.f, 0.0000f, -82.7485f);
         const float                    de00 = ColorSystem::Delta::E00(LAB1, LAB2);
-        REQUIRE(de00 == Approx(2.0424596801565738f).epsilon(EPS));
+        REQUIRE(de00 == Approx(2.0424596801565738f).margin(EPS));
     }
     SECTION("delta2")
     {
@@ -31,7 +31,7 @@ TEST_CASE("CIELAB")
         const float de00 = ColorSystem::Delta::E00(
                 ColorSystem::Tristimulus(50.f, 3.1571f, -77.2803f),
                 ColorSystem::Tristimulus(50.f, 0.0000f, -82.7485f));
-        REQUIRE(de00 == Approx(2.8615f).epsilon(EPS));
+        REQUIRE(de00 == Approx(2.8615f).margin(EPS));
     }
 }
 
