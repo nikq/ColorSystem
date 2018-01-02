@@ -6,19 +6,18 @@
 //
 #pragma once
 #ifndef colorsystem_hpp__abf47c16efbc4a80838738ff9b8a0eea
-#define colorsystem_hpp__abf47c16efbc4a80838738ff9b8a0eea   1
+#define colorsystem_hpp__abf47c16efbc4a80838738ff9b8a0eea 1
 
-#include <array>
 #include <algorithm>
-#include <vector>
+#include <array>
 #include <assert.h>
+#include <limits>
 #include <math.h>
 #include <stdio.h>
-#include <limits>
+#include <vector>
 
 namespace ColorSystem
 {
-
 namespace util
 {
     namespace Detail
@@ -50,7 +49,7 @@ class Vector3
 {
   public:
     typedef std::array<float, 3> vec3;
-    vec3 v_;
+    vec3                         v_;
     constexpr Vector3(const float a, const float b, const float c) : v_({a, b, c}) { ; }
     constexpr float operator[](const int &i) const
     {
@@ -76,7 +75,7 @@ class Matrix3
 {
   public:
     typedef std::array<float, 9> matrix;
-    matrix m_;
+    matrix                       m_;
 
   private:
     static constexpr int M(const int x, const int y) { return x + y * 3; }
@@ -315,12 +314,12 @@ class Tristimulus
         return max(min(*this, Tristimulus(h)), Tristimulus(l));
     }
     static constexpr Tristimulus clip(const Tristimulus &t, const float &l, const float &h) { return t.clip(l, h); }
-    constexpr Tristimulus positive() const
+    constexpr Tristimulus        positive() const
     {
         return max(*this, Tristimulus(0.f));
     }
     static constexpr Tristimulus positive(const Tristimulus &t) { return t.positive(); }
-    constexpr bool isNegative(const float &a) const
+    constexpr bool               isNegative(const float &a) const
     {
         return (a < 0.f);
     }
@@ -332,23 +331,25 @@ class Tristimulus
     {
         return t.hasNegative();
     }
+    static constexpr float abs_f(const float f) { return (f < 0.f) ? -f : f; }
+
     static constexpr float z_from_xy(const float &x, const float &y) { return 1 - x - y; }
-    static constexpr float X_from_Yxy(const float &Y, const float &x, const float &y) { return (Y < 1e-8f) ? 0.f : x * Y / y; }
+    static constexpr float X_from_Yxy(const float &Y, const float &x, const float &y) { return (abs_f(y) < 1e-8f) ? 0.f : x * Y / y; }
     static constexpr float Y_from_Yxy(const float &Y, const float &x, const float &y)
     {
         (void)x;
         (void)y;
-        return (Y < 1e-8f) ? 0.f : Y;
+        return Y;
     }
-    static constexpr float Z_from_Yxy(const float &Y, const float &x, const float &y) { return (Y < 1e-8f) ? 0.f : z_from_xy(x, y) * Y / y; }
+    static constexpr float Z_from_Yxy(const float &Y, const float &x, const float &y) { return (abs_f(y) < 1e-8f) ? 0.f : z_from_xy(x, y) * Y / y; }
     static constexpr float Y_from_XYZ(const float &x, const float &y, const float &z)
     {
         (void)x;
         (void)z;
-        return (y < 1e-8f) ? 0.f : y;
+        return y;
     }
-    static constexpr float x_from_XYZ(const float &x, const float &y, const float &z) { return (y < 1e-8f) ? 0.3127f : x / (x + y + z); }
-    static constexpr float y_from_XYZ(const float &x, const float &y, const float &z) { return (y < 1e-8f) ? 0.3290f : y / (x + y + z); }
+    static constexpr float       x_from_XYZ(const float &x, const float &y, const float &z) { return (abs_f(x + y + z) < 1e-8f) ? 0.3127f : x / (x + y + z); }
+    static constexpr float       y_from_XYZ(const float &x, const float &y, const float &z) { return (abs_f(x + y + z) < 1e-8f) ? 0.3290f : y / (x + y + z); }
     static constexpr Tristimulus fromYxy(const float &Y, const float &x, const float &y)
     {
         return Tristimulus(X_from_Yxy(Y, x, y), Y_from_Yxy(Y, x, y), Z_from_Yxy(Y, x, y));
@@ -371,10 +372,10 @@ class Tristimulus
     //  v' = 9y / (-2x + 12y + 3)    [ = 1.5v ]
     //  x = 9u' / (6u' - 16v' + 12)
     //  y = 4v' / (6u' - 16v' + 12)
-    static constexpr float u_from_xy(const float &x, const float &y) { return 4.f * x / (-2.f * x + 12.f * y + 3.f); }
-    static constexpr float v_from_xy(const float &x, const float &y) { return 6.f * y / (-2.f * x + 12.f * y + 3.f); }
-    static constexpr float x_from_uv(const float &u, const float &v) { return 3.f * u / (2.f * u - 8.f * v + 4.f); }
-    static constexpr float y_from_uv(const float &u, const float &v) { return 2.f * v / (2.f * u - 8.f * v + 4.f); }
+    static constexpr float       u_from_xy(const float &x, const float &y) { return 4.f * x / (-2.f * x + 12.f * y + 3.f); }
+    static constexpr float       v_from_xy(const float &x, const float &y) { return 6.f * y / (-2.f * x + 12.f * y + 3.f); }
+    static constexpr float       x_from_uv(const float &u, const float &v) { return 3.f * u / (2.f * u - 8.f * v + 4.f); }
+    static constexpr float       y_from_uv(const float &u, const float &v) { return 2.f * v / (2.f * u - 8.f * v + 4.f); }
     static constexpr Tristimulus YxyToYuv(const Tristimulus &Yxy) { return Tristimulus(Yxy[0], u_from_xy(Yxy[1], Yxy[2]), v_from_xy(Yxy[1], Yxy[2])); }
     static constexpr Tristimulus YuvToYxy(const Tristimulus &Yuv) { return Tristimulus(Yuv[0], x_from_uv(Yuv[1], Yuv[2]), y_from_uv(Yuv[1], Yuv[2])); }
     static constexpr Tristimulus toYuv(const Tristimulus &XYZ)
@@ -395,7 +396,7 @@ class Tristimulus
     }
     constexpr Tristimulus toYuv(void) const { return toYuv(*this); }
     constexpr Tristimulus fromYuv(void) const { return fromYuv(*this); }
-    
+
     // uv only used in CCT.
     static constexpr float blackbody_x_approx(const float &T)
     {
@@ -423,8 +424,8 @@ class Tristimulus
         const float y1 = blackbody_y_approx(T);
         const float u1 = u_from_xy(x1, y1);
         const float v1 = v_from_xy(x1, y1);
-        const float x2 = blackbody_x_approx(T-1.f);
-        const float y2 = blackbody_y_approx(T-1.f);
+        const float x2 = blackbody_x_approx(T - 1.f);
+        const float y2 = blackbody_y_approx(T - 1.f);
         const float u2 = u_from_xy(x2, y2);
         const float v2 = v_from_xy(x2, y2);
         const float du = u2 - u1;
@@ -449,7 +450,7 @@ class Tristimulus
     }
     static constexpr Tristimulus fromCCT(const float &T, const float &dUV, const float Y = 1.f)
     {
-        return Tristimulus(Y, CCT_x_approx(T,dUV), CCT_y_approx(T,dUV)).fromYuv();
+        return Tristimulus(Y, CCT_x_approx(T, dUV), CCT_y_approx(T, dUV)).fromYuv();
     }
 
     // Lab
@@ -689,15 +690,15 @@ class OTF
         // OTF_HLG // Hybrid-log-gamma
     } TYPE;
 
-    static float gamma(const float &v, const float &g) { return powf(v, 1.f / g); }
-    static float degamma(const float &v, const float &g) { return powf(v, g); }
+    static float       gamma(const float &v, const float &g) { return powf(v, 1.f / g); }
+    static float       degamma(const float &v, const float &g) { return powf(v, g); }
     static const float ST2084_to_Y(const float &pixel) // pixel should be 0-1
     {
-        const float pq_m1 = 0.1593017578125f;   // ( 2610.0 / 4096.0 ) / 4.0;
-        const float pq_m2 = 78.84375f;          // ( 2523.0 / 4096.0 ) * 128.0;
-        const float pq_c1 = 0.8359375f;         // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
-        const float pq_c2 = 18.8515625f;        // ( 2413.0 / 4096.0 ) * 32.0;
-        const float pq_c3 = 18.6875f;           // ( 2392.0 / 4096.0 ) * 32.0;
+        const float pq_m1 = 0.1593017578125f; // ( 2610.0 / 4096.0 ) / 4.0;
+        const float pq_m2 = 78.84375f;        // ( 2523.0 / 4096.0 ) * 128.0;
+        const float pq_c1 = 0.8359375f;       // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
+        const float pq_c2 = 18.8515625f;      // ( 2413.0 / 4096.0 ) * 32.0;
+        const float pq_c3 = 18.6875f;         // ( 2392.0 / 4096.0 ) * 32.0;
         const float pq_C  = 10000.0f;
 
         // Note that this does NOT handle any of the signal range
@@ -706,19 +707,19 @@ class OTF
         float L  = Np - pq_c1;
         if (L < 0.0)
             L = 0.0;
-        L     = L / (pq_c2 - pq_c3 * Np);
-        L     = powf(L, 1.0f / pq_m1);
+        L = L / (pq_c2 - pq_c3 * Np);
+        L = powf(L, 1.0f / pq_m1);
         return L * pq_C; // returns cd/m^2
     }
     static const float Y_to_ST2084(const float &nit) // nit should be 0-10000(cd/m^2)
     {
         if (nit <= 0.f)
             return 0.f;
-        const float pq_m1 = 0.1593017578125f;   // ( 2610.0 / 4096.0 ) / 4.0;
-        const float pq_m2 = 78.84375f;          // ( 2523.0 / 4096.0 ) * 128.0;
-        const float pq_c1 = 0.8359375f;         // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
-        const float pq_c2 = 18.8515625f;        // ( 2413.0 / 4096.0 ) * 32.0;
-        const float pq_c3 = 18.6875f;           // ( 2392.0 / 4096.0 ) * 32.0;
+        const float pq_m1 = 0.1593017578125f; // ( 2610.0 / 4096.0 ) / 4.0;
+        const float pq_m2 = 78.84375f;        // ( 2523.0 / 4096.0 ) * 128.0;
+        const float pq_c1 = 0.8359375f;       // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
+        const float pq_c2 = 18.8515625f;      // ( 2413.0 / 4096.0 ) * 32.0;
+        const float pq_c3 = 18.6875f;         // ( 2392.0 / 4096.0 ) * 32.0;
         const float pq_C  = 10000.0f;
 
         // Note that this does NOT handle any of the signal range
@@ -732,7 +733,7 @@ class OTF
     static const float Y_to_sRGB(const float &nits) // returns signal, 0-1, input nits [0-100]
     {
         const float C = nits / 100.f;
-        return (C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f);
+        return (C < 0.f) ? 0.f : (C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f);
     }
     static const float sRGB_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
     {
@@ -741,7 +742,7 @@ class OTF
     static const float Y_to_BT709(const float &nits) // returns signal, 0-1, input nits [0-100]
     {
         const float C = nits / 100.f;
-        return (C < 0.018f) ? C * 4.50f : (1.099f * powf(C, 0.45f) - 0.099f);
+        return (C < 0.f) ? 0.f : (C < 0.018f) ? C * 4.50f : (1.099f * powf(C, 0.45f) - 0.099f);
     }
     static const float BT709_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
     {
@@ -845,7 +846,7 @@ class Spectrum
 {
   public:
     typedef std::array<float, 400> spectrum; // 380-780, 1nm, fixed.
-    spectrum s_;
+    spectrum                       s_;
 
     constexpr Spectrum() : s_{} { ; }
     constexpr Spectrum(const spectrum &s) : s_(s) { ; }
@@ -938,8 +939,8 @@ class Spectrum
         }
         return Spectrum(s);
     }
-    const Spectrum operator*(const Spectrum &b) const { return mul(*this, b); }
-    const Spectrum operator+(const Spectrum &b) const { return add(*this, b); }
+    const Spectrum         operator*(const Spectrum &b) const { return mul(*this, b); }
+    const Spectrum         operator+(const Spectrum &b) const { return add(*this, b); }
     static constexpr float sumHelper(const Spectrum &a, const int i)
     {
         return (i > 0) ? sumHelper(a, i - 1) + a[i] : a[0];
@@ -2301,10 +2302,30 @@ namespace Macbeth
 
     // Brown skin, light skin, sky, folliage, ...
     static constexpr std::array<Spectrum, 24> Patch{
-        Macbeth01, Macbeth02, Macbeth03, Macbeth04, Macbeth05, Macbeth06,
-        Macbeth11, Macbeth12, Macbeth13, Macbeth14, Macbeth15, Macbeth16,
-        Macbeth21, Macbeth22, Macbeth23, Macbeth24, Macbeth25, Macbeth26,
-        Macbeth31, Macbeth32, Macbeth33, Macbeth34, Macbeth35, Macbeth36,
+        Macbeth01,
+        Macbeth02,
+        Macbeth03,
+        Macbeth04,
+        Macbeth05,
+        Macbeth06,
+        Macbeth11,
+        Macbeth12,
+        Macbeth13,
+        Macbeth14,
+        Macbeth15,
+        Macbeth16,
+        Macbeth21,
+        Macbeth22,
+        Macbeth23,
+        Macbeth24,
+        Macbeth25,
+        Macbeth26,
+        Macbeth31,
+        Macbeth32,
+        Macbeth33,
+        Macbeth34,
+        Macbeth35,
+        Macbeth36,
     };
 
     static std::vector<Tristimulus> reference(const Spectrum &light, const Observer &obs = CIE1931)
@@ -2362,9 +2383,9 @@ namespace SOLVER
             for (auto &v : v_)
                 v.resize(c);
         }
-        const int rows(void) { return (int)(v_.size()); }
-        const int cols(void) { return (int)(v_.size() ? v_[0].size() : 0); }
-        float &v(int r, int c) { return v_[r][c]; }
+        const int           rows(void) { return (int)(v_.size()); }
+        const int           cols(void) { return (int)(v_.size() ? v_[0].size() : 0); }
+        float &             v(int r, int c) { return v_[r][c]; }
         std::vector<float> &operator[](int r) { return v_[r]; }
     };
 
@@ -2438,7 +2459,7 @@ namespace SOLVER
                                 a[k][j] += (f * a[k][i]);
                         }
                     }
-                    for (k      = i; k < m; k++)
+                    for (k = i; k < m; k++)
                         a[k][i] = (a[k][i] * scale);
                 }
             }
@@ -2461,7 +2482,7 @@ namespace SOLVER
                     g       = -DSIGN(sqrtf(s), f);
                     h       = f * g - s;
                     a[i][l] = (f - g);
-                    for (k     = l; k < n; k++)
+                    for (k = l; k < n; k++)
                         rv1[k] = a[i][k] / h;
                     if (i != m - 1)
                     {
@@ -2473,7 +2494,7 @@ namespace SOLVER
                                 a[j][k] += (s * rv1[k]);
                         }
                     }
-                    for (k      = l; k < n; k++)
+                    for (k = l; k < n; k++)
                         a[i][k] = (a[i][k] * scale);
                 }
             }
@@ -2487,7 +2508,7 @@ namespace SOLVER
             {
                 if (g)
                 {
-                    for (j      = l; j < n; j++)
+                    for (j = l; j < n; j++)
                         v[j][i] = ((a[i][j] / a[i][l]) / g);
                     /* float division to avoid underflow */
                     for (j = l; j < n; j++)
@@ -2498,7 +2519,7 @@ namespace SOLVER
                             v[k][j] += (s * v[k][i]);
                     }
                 }
-                for (j      = l; j < n; j++)
+                for (j = l; j < n; j++)
                     v[i][j] = v[j][i] = 0.0;
             }
             v[i][i] = 1.0;
@@ -2512,7 +2533,7 @@ namespace SOLVER
             l = i + 1;
             g = w[i];
             if (i < n - 1)
-                for (j      = l; j < n; j++)
+                for (j = l; j < n; j++)
                     a[i][j] = 0.0;
             if (g)
             {
@@ -2528,12 +2549,12 @@ namespace SOLVER
                             a[k][j] += (f * a[k][i]);
                     }
                 }
-                for (j      = i; j < m; j++)
+                for (j = i; j < m; j++)
                     a[j][i] = (a[j][i] * g);
             }
             else
             {
-                for (j      = i; j < m; j++)
+                for (j = i; j < m; j++)
                     a[j][i] = 0.0;
             }
             ++a[i][i];
@@ -2587,7 +2608,7 @@ namespace SOLVER
                     if (z < 0.0)
                     { /* make singular value nonnegative */
                         w[k] = (-z);
-                        for (j      = 0; j < n; j++)
+                        for (j = 0; j < n; j++)
                             v[j][k] = (-v[j][k]);
                     }
                     break;
@@ -2724,8 +2745,8 @@ namespace SOLVER
 class Corrector
 {
   public:
-    Corrector() = default ;
-    virtual ~Corrector() = default ;
+    Corrector()          = default;
+    virtual ~Corrector() = default;
 
     static Matrix3 solve(const std::vector<Tristimulus> &patch, const std::vector<Tristimulus> &target)
     {
