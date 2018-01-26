@@ -26,7 +26,7 @@ namespace util
         {
             return curr == prev ? curr : sqrtNewtonRaphsonF(x, 0.5f * (curr + x / curr), curr);
         }
-    }
+    } // namespace Detail
 
     /*
     * Constexpr version of the square root
@@ -41,7 +41,7 @@ namespace util
                    ? Detail::sqrtNewtonRaphsonF(x, x, 0.f)
                    : std::numeric_limits<float>::quiet_NaN();
     }
-}
+} // namespace util
 
 static const float PI = 3.14159265358979323846f;
 
@@ -680,7 +680,8 @@ class Gamut
 class OTF
 {
   public:
-    typedef enum {
+    typedef enum
+    {
         LINEAR,
         GAMMA, // simplest gamma
         SRGB,
@@ -715,7 +716,7 @@ class OTF
     {
         if (C <= 0.f)
             return 0.f;
-        if (C>=100.f)
+        if (C >= 100.f)
             return 1.f;
         const float pq_m1 = 0.1593017578125f; // ( 2610.0 / 4096.0 ) / 4.0;
         const float pq_m2 = 78.84375f;        // ( 2523.0 / 4096.0 ) * 128.0;
@@ -733,7 +734,7 @@ class OTF
         return N;
     }
     static const float Y_to_sRGB(const float &C) // returns signal, 0-1, input 0-1
-    {        
+    {
         return (C < 0.f) ? 0.f : (C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f);
     }
     static const float sRGB_to_Y(const float &C) // returns 0-1, 1=100 nits
@@ -2737,7 +2738,7 @@ namespace SOLVER
 
         return 0;
     }
-}
+} // namespace SOLVER
 
 // --------------- Color correction.
 
