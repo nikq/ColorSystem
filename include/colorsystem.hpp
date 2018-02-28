@@ -735,19 +735,19 @@ class OTF
     }
     static const float Y_to_sRGB(const float &C) // returns signal, 0-1, input 0-1
     {
-        return (C < 0.f) ? 0.f : (C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f);
+        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : (C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f));
     }
     static const float sRGB_to_Y(const float &C) // returns 0-1, 1=100 nits
     {
-        return (C < 0.04045f) ? C / 12.92f : powf((C + 0.055f) / 1.055f, 2.4f);
+        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : ((C < 0.04045f) ? C / 12.92f : powf((C + 0.055f) / 1.055f, 2.4f)));
     }
     static const float Y_to_BT709(const float &C) // returns signal, 0-1, input 0-1
     {
-        return (C < 0.f) ? 0.f : (C < 0.018f) ? C * 4.50f : (1.099f * powf(C, 0.45f) - 0.099f);
+        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : ((C < 0.018f) ? C * 4.50f : (1.099f * powf(C, 0.45f) - 0.099f)));
     }
     static const float BT709_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
     {
-        return (C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f / 0.45f);
+        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : (C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f / 0.45f));
     }
 
     static const float CV_to_IRE_SLog2(const float &cv)
