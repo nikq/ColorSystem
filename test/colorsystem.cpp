@@ -48,9 +48,11 @@ TEST_CASE("fromXYZ", "[XYZ]")
 TEST_CASE("BT709")
 {
     ColorSystem::Tristimulus white(1, 1, 1);
-    auto const &             monitor = ColorSystem::OTF::toScreen(ColorSystem::OTF::BT709, ColorSystem::AdobeRGB.fromXYZ(white) * 100.f);
+
+    auto const &monitor = ColorSystem::OTF::toScreen(ColorSystem::OTF::BT709, ColorSystem::AdobeRGB.fromXYZ(white));
+    
     // 1.062991,0.974048,0.954468
-    REQUIRE_THAT(monitor, IsApproxEquals(ColorSystem::Tristimulus{1.062991f, 0.974048f, 0.954468f}, epsilon));
+    REQUIRE_THAT(monitor, IsApproxEquals(ColorSystem::Tristimulus{1.0f, 0.974048f, 0.954468f}, epsilon));
 }
 
 TEST_CASE("toYxy")
@@ -59,7 +61,7 @@ TEST_CASE("toYxy")
     {
         ColorSystem::Tristimulus X(1.f, 0.f, 0.f);
         auto const &             X_Yxy = X.toYxy();
-        REQUIRE_THAT(X_Yxy, IsApproxEquals(ColorSystem::Tristimulus{0.0000f, 0.3127f, 0.3290f}, epsilon));
+        REQUIRE_THAT(X_Yxy, IsApproxEquals(ColorSystem::Tristimulus{0.0000f, 1.0000f, 0.0000f}, epsilon));
     }
     SECTION("Convert from Y")
     {
@@ -71,7 +73,7 @@ TEST_CASE("toYxy")
     {
         ColorSystem::Tristimulus Z(0.f, 0.f, 1.f);
         auto const &             Z_Yxy = Z.toYxy();
-        REQUIRE_THAT(Z_Yxy, IsApproxEquals(ColorSystem::Tristimulus{0.0000f, 0.3127f, 0.3290f}, epsilon));
+        REQUIRE_THAT(Z_Yxy, IsApproxEquals(ColorSystem::Tristimulus{0.0000f, 0.0000f, 0.0000f}, epsilon));
     }
     SECTION("Convert from 5R")
     {
@@ -103,9 +105,9 @@ TEST_CASE("fromCT")
 {
     SECTION("1931 6500K = 0.3127 0.3290, WP approx")
     {
-        ColorSystem::Tristimulus W = ColorSystem::Tristimulus::fromPlanckianLocus(6504.f);
+        ColorSystem::Tristimulus W     = ColorSystem::Tristimulus::fromPlanckianLocus(6504.f);
         auto const &             W_Yxy = W.toYxy();
-        printf("%f,%f,%f\n",W_Yxy[0],W_Yxy[1],W_Yxy[2]);
+        printf("%f,%f,%f\n", W_Yxy[0], W_Yxy[1], W_Yxy[2]);
         REQUIRE_THAT(W_Yxy, IsApproxEquals(ColorSystem::Tristimulus{1.00f, 0.3127f, 0.3290f}, 1e-2f)); // this approximation is not precise.
     }
     SECTION("1931 6500K = 0.3127 0.3290, our approx")
