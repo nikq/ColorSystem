@@ -688,7 +688,7 @@ class OTF
         BT709,
         ST2084,
         SLOG2,
-        // OTF_HLG // Hybrid-log-gamma
+        HLG // Hybrid-log-gamma
     } TYPE;
 
     static float       gamma(const float &v, const float &g) { return powf(v, 1.f / g); }
@@ -735,7 +735,7 @@ class OTF
     }
     static const float Y_to_sRGB(const float &C) // returns signal, 0-1, input 0-1
     {
-        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : (C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f));
+        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : ((C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f)));
     }
     static const float sRGB_to_Y(const float &C) // returns 0-1, 1=100 nits
     {
@@ -747,7 +747,23 @@ class OTF
     }
     static const float BT709_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
     {
-        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : (C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f / 0.45f));
+        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : ((C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f / 0.45f)));
+    }
+
+    static const float Y_to_HLG(const float &C)
+    {
+        const float a = 0.17883277f;
+        const float b = 0.28466892f;
+        const float c = 0.55991073f;
+        return (C < 0.f) ? 0.f : ((C < 1.f) ? (0.5f * sqrtf(C)) : (a * logf(C - b) + c));
+    }
+
+    static const float HLG_to_Y(const float &C)
+    {
+        const float a = 0.17883277f;
+        const float b = 0.28466892f;
+        const float c = 0.55991073f;
+        return (C < 0.f) ? 0.f : ((C <= 0.5f) ? (4.f * C * C) : exp((C - c) / a) + b);
     }
 
     static const float CV_to_IRE_SLog2(const float &cv)
@@ -802,6 +818,10 @@ class OTF
             return Tristimulus(Y_to_SLog2(scene[0]), Y_to_SLog2(scene[1]), Y_to_SLog2(scene[2]));
         }
         break;
+        case HLG:
+        {
+            return Tristimulus(Y_to_HLG(scene[0]), Y_to_HLG(scene[1]), Y_to_HLG(scene[2]));
+        }
         case LINEAR:
         default:
             return scene;
@@ -834,13 +854,17 @@ class OTF
         {
             return Tristimulus(SLog2_to_Y(screen[0]), SLog2_to_Y(screen[1]), SLog2_to_Y(screen[2]));
         }
+        case HLG:
+        {
+            return Tristimulus(HLG_to_Y(screen[0]), HLG_to_Y(screen[1]), HLG_to_Y(screen[2]));
+        }
         break;
         case LINEAR:
         default:
             return screen;
         }
     }
-};
+}; // namespace ColorSystem
 
 class Spectrum
 {
