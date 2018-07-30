@@ -40,4 +40,6 @@ CMakeCache.txt
 .vscode
 .vs
 
+build
 sample
+ext
