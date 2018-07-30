@@ -1029,6 +1029,10 @@ class Observer
     {
         return Tristimulus(X_.fetch(lambda), Y_.fetch(lambda), Z_.fetch(lambda)) * 683.0f * watt_per_sr_m2;
     }
+    constexpr Tristimulus xyz(const float lambda)
+    {
+        return Tristimulus(X_.fetch(lambda), Y_.fetch(lambda), Z_.fetch(lambda)).mul(normalize_);
+    }
 };
 
 static constexpr Spectrum CIE1931_X({0.00136800000f, 0.00150205000f, 0.00164232800f, 0.00180238200f, 0.00199575700f, 0.00223600000f, 0.00253538500f, 0.00289260300f, 0.00330082900f, 0.00375323600f,
