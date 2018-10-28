@@ -166,22 +166,22 @@ class Tristimulus
 {
   public:
     Vector3 v_;
-    
+
     constexpr Tristimulus(const float &a, const float &b, const float &c) : v_(a, b, c) { ; }
     constexpr Tristimulus() : v_(0, 0, 0) { ; }
     constexpr Tristimulus(const Vector3 &v) : v_(v) { ; }
     constexpr Tristimulus(const float &v) : v_(v, v, v) { ; }
 
-    constexpr float              operator[](const int &i) const { return v_[i]; }
-    constexpr auto               size() const { return v_.size(); }
-    auto                         begin() const { return v_.begin(); }
-    auto                         end() const { return v_.end(); }
-    
-    constexpr const Vector3 &    vec3(void) const { return v_; }
-    constexpr float              a() const { return v_[0]; }
-    constexpr float              b() const { return v_[1]; }
-    constexpr float              c() const { return v_[2]; }
-    
+    constexpr float operator[](const int &i) const { return v_[i]; }
+    constexpr auto  size() const { return v_.size(); }
+    auto            begin() const { return v_.begin(); }
+    auto            end() const { return v_.end(); }
+
+    constexpr const Vector3 &vec3(void) const { return v_; }
+    constexpr float          a() const { return v_[0]; }
+    constexpr float          b() const { return v_[1]; }
+    constexpr float          c() const { return v_[2]; }
+
     static constexpr Tristimulus scale(const Tristimulus &t, const float &s)
     {
         return Tristimulus(t[0] * s, t[1] * s, t[2] * s);
@@ -604,6 +604,458 @@ class Gamut
         return Tristimulus(n[2], n[5], n[8]);
     }
 };
+
+class MemoryStream
+{
+  public:
+    typedef size_t Pointer;
+    typedef enum
+    {
+        BUFFERBYTES = 1,
+        BUFFERBITS  = 8,
+    } PARAM;
+    typedef enum
+    {
+        TOP,
+        CURRENT,
+        END
+    } CURSOR;
+    typedef enum
+    {
+        LITTLE,
+        BIG,
+    } ENDIAN;
+
+  public:
+    MemoryStream() { init(); }
+    MemoryStream(const void *data,size_t sz){init(data,sz);}
+    std::vector<uint8_t>  buffer_;
+    std::vector<uint8_t> &buffer() { return buffer_; }
+
+    int     ptr_;
+    ENDIAN  readEndian_;
+    ENDIAN  writeEndian_;
+
+    void init(const void *data = NULL,size_t sz = 0)
+    {
+        if (data)
+        {
+            buffer_.resize(sz);
+            memcpy(&(buffer_.front()), data, sz);
+        }
+        else
+        {
+            buffer_.resize(sz);
+        }
+        ptr_         = 0;
+        readEndian_  = LITTLE;
+        writeEndian_ = LITTLE;
+    }
+
+    size_t  ftell(void) { return (size_t)ptr_; }
+    Pointer mark(void) { return ptr_; }
+    int     fseek(int offs, CURSOR cursor)
+    {
+        int ptr_p = ptr_;
+        switch (cursor)
+        {
+        case TOP:
+        {
+            ptr_ = offs;
+        }
+        break;
+        case CURRENT:
+        {
+            ptr_ += offs;
+        }
+        break;
+        case END:
+        {
+            ptr_ = (int)buffer_.size() - offs - 1;
+        }
+        break;
+        }
+        assert(ptr_ >= 0);
+        assert(ptr_ <= buffer_.size());
+        return ptr_;
+    }
+
+    void seekTo(Pointer p) { fseek((int)p, TOP); }
+
+    void *ptr(void) { return (void *)&(buffer_[ptr_]); }
+    void *ptr(Pointer p) { return (void *)&(buffer_[p]); }
+    bool  feof(void) { return ptr_ >= buffer_.size(); }
+
+    // read absolute.
+    uint8_t get_at(size_t abs)
+    {
+        if (abs < buffer_.size())
+            return buffer_[abs];
+        return 0;
+    }
+    void put_at(size_t abs, uint8_t val)
+    {
+        if (abs < buffer_.size())
+            buffer_.resize(abs);
+        buffer_[abs] = val;
+    }
+    size_t read_at(void *buffer, size_t s, Pointer p)
+    {
+        int r      = (int)buffer_.size() - (int)p;
+        if( r < 0 )
+            return 0;
+        size_t remain = (s < r) ? s : r;
+        memcpy(buffer, ptr(p), remain);
+        return remain;
+    }
+    size_t write_at(const void *buffer, size_t s, Pointer p)
+    {
+        size_t s1 = buffer_.size();
+        size_t s2 = p + s;
+        if (s2 > s1)
+            buffer_.resize(s2);
+        memcpy(ptr(p), buffer, s);
+        return s;
+    }
+    size_t read(void *buffer, size_t size)
+    {
+        size_t sz = read_at(buffer, size, ptr_);
+        ptr_ += (int)sz;
+        return sz;
+    }
+    size_t write(const void *buffer, size_t size)
+    {
+        size_t s = size;
+        write_at(buffer, s, ptr_);
+        ptr_ += (int)s;
+        return s;
+    }
+    uint8_t getUint8(void)
+    {
+        if (ptr_ < buffer_.size())
+        {
+            uint8_t c = buffer_[ptr_];
+            ptr_++;
+            return c;
+        }
+        return 0;
+    }
+    void putUint8(const uint8_t uc)
+    {
+        size_t s = buffer_.size();
+        if (ptr_ < s)
+        {
+            buffer_[ptr_] = uc;
+            return;
+        }
+        else if (ptr_ == s)
+        {
+            buffer_.push_back(uc);
+            ptr_++;
+            return;
+        }
+        assert(false);
+    }
+    void setReadEndian(const ENDIAN e) { readEndian_ = e; }
+    void setWriteEndian(const ENDIAN e) { writeEndian_ = e; }
+    const int8_t getInt8(void)
+    {
+        uint8_t uc = getUint8();
+        return *(int8_t *)&uc;
+    }
+    const uint16_t getUint16(void)
+    {
+        uint8_t a = getUint8();
+        uint8_t b = getUint8();
+        return (readEndian_ == BIG) ? ((a << 8) | b) : ((b << 8) | a);
+    }
+    const int16_t getInt16(void)
+    {
+        uint8_t a = getUint8();
+        uint8_t b = getUint8();
+        return (readEndian_ == BIG) ? ((*(int8_t *)&a << 8) | b) : ((*(int8_t *)&b << 8) | a);
+    }
+    const uint32_t getUint32(void)
+    {
+        uint16_t a = getUint16();
+        uint16_t b = getUint16();
+        return (readEndian_ == BIG) ? ((a << 16) | b) : ((b << 16) | a);
+    }
+    const int32_t getInt32(void)
+    {
+        uint16_t a = getUint16();
+        uint16_t b = getUint16();
+        return (readEndian_ == BIG) ? ((*(int16_t *)&a << 16) | b) : ((*(int16_t *)&b << 16) | a);
+    }
+    const uint64_t getUint64(void)
+    {
+        uint64_t lo, hi;
+        if (readEndian_ == BIG)
+        {
+            hi = getUint32();
+            lo = getUint32();
+        }
+        else
+        {
+            lo = getUint32();
+            hi = getUint32();
+        }
+        return (lo | hi << 32);
+    }
+    const int64_t getInt64(void)
+    {
+        uint64_t lo;
+        int64_t  hi;
+        if (readEndian_ == BIG)
+        {
+            hi = getInt32();
+            lo = getUint32();
+        }
+        else
+        {
+            lo = getUint32();
+            hi = getInt32();
+        }
+        return (lo | hi << 32);
+    }
+    const float getFloat(void)
+    {
+        union
+        {
+            uint32_t ui;
+            float     f;
+        } x;
+        x.ui = getUint32();
+        return x.f;
+    }
+    const double getDouble(void)
+    {
+        union
+        {
+            uint64_t ull;
+            double   f;
+        } x;
+        x.ull = getUint64();
+        return x.f;
+    }
+    const std::string getSubstr(int len)
+    {
+        std::string str;
+        for (int i = 0; i < len - 1; i++)
+        {
+            uint8_t uc = getUint8();
+            str.push_back(uc);
+        }
+        if (len > 0)
+            getUint8();
+        return str;
+    }
+    const std::string get_string(void)
+    {
+        int len = getUint32();
+        if (len > 0)
+            return getSubstr(len);
+        return "";
+    }
+
+    void align(int a)
+    {
+        size_t s = ftell();
+        int m = (a - (s % a)) % a;
+        fseek(m, CURRENT);
+    }
+    Pointer getPointer32(void)
+    {
+        Pointer p = getUint32();
+        return p;
+    }
+    Pointer putPointer32(void)
+    {
+        Pointer p = mark();
+        putUint32(0);
+        return p;
+    }
+    Pointer getPointer64(void)
+    {
+        Pointer p = getUint64();
+        return p;
+    }
+    Pointer putPointer64(void)
+    {
+        Pointer p = mark();
+        putUint64(0);
+        return p;
+    }
+
+    void adjustPointer32(Pointer p)
+    {
+        uint32_t ui  = (uint32_t)buffer_.size();
+        uint8_t  uc0 = ui & 0xFF;
+        ui >>= 8;
+        uint8_t uc1 = ui & 0xFF;
+        ui >>= 8;
+        uint8_t uc2 = ui & 0xFF;
+        ui >>= 8;
+        uint8_t uc3 = ui & 0xFF;
+        if (writeEndian_ == BIG)
+        {
+            buffer_[p]     = uc3;
+            buffer_[p + 1] = uc2;
+            buffer_[p + 2] = uc1;
+            buffer_[p + 3] = uc0;
+        }
+        else
+        {
+            buffer_[p]     = uc0;
+            buffer_[p + 1] = uc1;
+            buffer_[p + 2] = uc2;
+            buffer_[p + 3] = uc3;
+        }
+    }
+    void adjustPointer64(Pointer p)
+    {
+        uint64_t ui  = buffer_.size();
+        uint8_t  uc0 = ui & 0xFF;
+        ui >>= 8;
+        uint8_t uc1 = ui & 0xFF;
+        ui >>= 8;
+        uint8_t uc2 = ui & 0xFF;
+        ui >>= 8;
+        uint8_t uc3 = ui & 0xFF;
+        ui >>= 8;
+        uint8_t uc4 = ui & 0xFF;
+        ui >>= 8;
+        uint8_t uc5 = ui & 0xFF;
+        ui >>= 8;
+        uint8_t uc6 = ui & 0xFF;
+        ui >>= 8;
+        uint8_t uc7 = ui & 0xFF;
+        if (writeEndian_ == BIG)
+        {
+            buffer_[p]     = uc7;
+            buffer_[p + 1] = uc6;
+            buffer_[p + 2] = uc5;
+            buffer_[p + 3] = uc4;
+            buffer_[p + 4] = uc3;
+            buffer_[p + 5] = uc2;
+            buffer_[p + 6] = uc1;
+            buffer_[p + 7] = uc0;
+        }
+        else
+        {
+            buffer_[p]     = uc0;
+            buffer_[p + 1] = uc1;
+            buffer_[p + 2] = uc2;
+            buffer_[p + 3] = uc3;
+            buffer_[p + 4] = uc4;
+            buffer_[p + 5] = uc5;
+            buffer_[p + 6] = uc6;
+            buffer_[p + 7] = uc7;
+        }
+    }
+
+    void putInt8(const int8_t v) { putUint8(*(uint8_t *)&v); }
+    void putUint16(const uint16_t u)
+    {
+        if (writeEndian_ == BIG)
+        {
+            putUint8((u >> 8) & 0xFF);
+            putUint8(u & 0xFF);
+        }
+        else
+        {
+            // LE
+            putUint8(u & 0xFF);
+            putUint8((u >> 8) & 0xFF);
+        }
+    }
+    void putInt16(const int16_t u)
+    {
+        if (writeEndian_ == BIG)
+        {
+            putInt8((u >> 8) & 0xFF);
+            putUint8(u & 0xFF);
+        }
+        else
+        {
+            // LE
+            putUint8(u & 0xFF);
+            putInt8((u >> 8) & 0xFF);
+        }
+    }
+    void putUint32(const uint32_t u)
+    {
+        if (writeEndian_ == BIG)
+        {
+            putUint16((u >> 16) & 0xFFFF);
+            putUint16(u & 0xFFFF);
+        }
+        else
+        {
+            putUint16(u & 0xFFFF);
+            putUint16((u >> 16) & 0xFFFF);
+        }
+    }
+    void putInt32(const int32_t u)
+    {
+        if (writeEndian_ == BIG)
+        {
+            putInt16((u >> 16) & 0xFFFF);
+            putUint16(u & 0xFFFF);
+        }
+        else
+        {
+            putUint16(u & 0xFFFF);
+            putInt16((u >> 16) & 0xFFFF);
+        }
+    }
+
+    void putUint64(const uint64_t v)
+    {
+        if (writeEndian_ == BIG)
+        {
+            putUint32(v >> 32);
+            putUint32(v & 0xFFFFFFFF);
+        }
+        else
+        {
+            putUint32(v & 0xFFFFFFFF);
+            putUint32(v >> 32);
+        }
+    }
+    void putInt64(const int64_t v)
+    {
+        if (writeEndian_ == BIG)
+        {
+            putInt32(v >> 32);
+            putUint32(v & 0xFFFFFFFF);
+        }
+        else
+        {
+            putUint32(v & 0xFFFFFFFF);
+            putInt32(v >> 32);
+        }
+    }
+    void putFloat(const float v) { putUint32(*(uint32_t *)&v); } // endian henkan is done by uint.
+    void putDouble(const double v) { putUint64(*(uint64_t *)&v); }
+    void putSubstr(const std::string &str, size_t len)
+    {
+        for (int i = 0; i < len - 1; i++)
+        {
+            putUint8(str[i]);
+        }
+        if (len > 0)
+            putUint8(0);
+    }
+    void putString(const std::string &str) { putSubstr(str, str.size()); }
+};
+
+static Gamut loadGamutFromICCProfileMemory(const void *mem, size_t size) 
+{
+    
+    MemoryStream stream(mem, size);
+    return Gamut("",Matrix3(1,0,0,0,1,0,0,0,1));
+}
 
 class OTF
 {
