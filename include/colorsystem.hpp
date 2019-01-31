@@ -1396,7 +1396,7 @@ class Observer
     {
         return Tristimulus(X_.fetch(lambda), Y_.fetch(lambda), Z_.fetch(lambda)) * 683.0f * watt_per_sr_m2;
     }
-    constexpr Tristimulus xyz(const float lambda)
+    constexpr Tristimulus xyz(const float lambda) const
     {
         return Tristimulus(X_.fetch(lambda), Y_.fetch(lambda), Z_.fetch(lambda)).mul(normalize_);
     }
