@@ -475,68 +475,6 @@ class Tristimulus
     constexpr Tristimulus fromHSV(void) const { return fromHSV(*this); }
 };
 
-class Delta
-{
-  public:
-    static const float UV(const Tristimulus &a_Yuv, const Tristimulus &b_Yuv) // a, b both are XYZ
-    {
-        return sqrtf((a_Yuv[1] - b_Yuv[1]) * (a_Yuv[1] - b_Yuv[1]) + (a_Yuv[2] - b_Yuv[2]) * (a_Yuv[2] - b_Yuv[2]));
-    }
-    static const float E76(const Tristimulus &a_LAB, const Tristimulus &b_LAB)
-    {
-        return sqrtf((a_LAB[0] - b_LAB[0]) * (a_LAB[0] - b_LAB[0]) + (a_LAB[1] - b_LAB[1]) * (a_LAB[1] - b_LAB[1]) +
-                     (a_LAB[2] - b_LAB[2]) * (a_LAB[2] - b_LAB[2]));
-    }
-    static const float E00(const Tristimulus &lab1, const Tristimulus &lab2, const float &Kl = 1.f,
-        const float &Kc = 1.f, const float &Kh = 1.f)
-    {
-        const float PI      = 3.14159265358979323846264338327950288f;
-        const float L1      = lab1[0];
-        const float a1      = lab1[1];
-        const float b1      = lab1[2];
-        const float L2      = lab2[0];
-        const float a2      = lab2[1];
-        const float b2      = lab2[2];
-        const float Lbar    = (L1 + L2) / 2.f;
-        const float C1      = sqrtf(a1 * a1 + b1 * b1);
-        const float C2      = sqrtf(a2 * a2 + b2 * b2);
-        const float Cbar    = (C1 + C2) / 2.f;
-        const float C7      = powf(Cbar, 7.f);
-        const float pow25_7 = 25.f * 25.f * 25.f * 25.f * 25.f * 25.f * 25.f;
-        const float G       = (1.f - sqrtf(C7 / (C7 + pow25_7))) / 2.f;
-        const float ad1     = a1 * (1.f + G);
-        const float ad2     = a2 * (1.f + G);
-        const float Cd1     = sqrtf(ad1 * ad1 + b1 * b1);
-        const float Cd2     = sqrtf(ad2 * ad2 + b2 * b2);
-        const float CdBar   = (Cd1 + Cd2) / 2.f;
-        const float h1      = fmodf(360.f + atan2f(b1, ad1) * 180.0f / PI, 360.f);
-        const float h2      = fmodf(360.f + atan2f(b2, ad2) * 180.0f / PI, 360.f);
-        const float HdBar   = (fabs(h1 - h2) > 180.f ? (h1 + h2 + 360.f) : (h1 + h2)) / 2.f;
-        const float T1      = 1.f - 0.17f * cosf(PI * (1.f * HdBar - 30.f) / 180.f);
-        const float T2      = 0.24f * cosf(PI * (2.f * HdBar) / 180.f) + 0.32f * cosf(PI * (3.f * HdBar + 6.f) / 180.f);
-        const float T3      = 0.20f * cosf(PI * (4.f * HdBar - 63.f) / 180.f);
-        const float T       = T1 + T2 - T3;
-        const float deltah  = (fabs(h2 - h1) <= 180.f) ? h2 - h1 : ((h2 <= h1) ? h2 - h1 + 360.f : h2 - h1 - 360.f);
-        const float deltaL  = L2 - L1;
-        const float deltaC  = Cd2 - Cd1;
-        const float deltaH  = 2.f * sqrtf(Cd1 * Cd2) * sinf(PI * deltah / (180.f * 2.f));
-        const float Lbar2   = (Lbar - 50.f) * (Lbar - 50.f);
-        const float Sl      = 1.f + 0.015f * Lbar2 / sqrtf(20.f + Lbar2);
-        const float Sc      = 1.f + 0.045f * CdBar;
-        const float Sh      = 1.f + 0.015f * CdBar * T;
-        const float HdBar2  = (HdBar - 275.f) * (HdBar - 275.f) / (25.f * 25.f);
-        const float deltaTheta = 30.f * expf(-HdBar2);
-        const float CdBar7     = powf(CdBar, 7.f);
-        const float Rc         = 2.f * sqrtf(CdBar7 / (CdBar7 + pow25_7));
-        const float Rt         = -Rc * sinf(2.f * deltaTheta * PI / 180.f);
-        const float dl         = deltaL / (Kl * Sl);
-        const float dc         = deltaC / (Kc * Sc);
-        const float dh         = deltaH / (Kh * Sh);
-
-        return sqrtf(dl * dl + dc * dc + dh * dh + Rt * dc * dh);
-    }
-};
-
 class Gamut
 {
   public:
@@ -602,6 +540,201 @@ class Gamut
     {
         const Matrix3 n(primaryMatrix());
         return Tristimulus(n[2], n[5], n[8]);
+    }
+};
+class OTF
+{
+  public:
+    typedef enum
+    {
+        LINEAR,
+        GAMMA, // simplest gamma
+        SRGB,
+        BT709,
+        ST2084,
+        SLOG2,
+        HLG // Hybrid-log-gamma
+    } TYPE;
+
+    static float       gamma(const float &v, const float &g) { return powf(v, 1.f / g); }
+    static float       degamma(const float &v, const float &g) { return powf(v, g); }
+    static const float ST2084_to_Y(const float &pixel) // pixel should be 0-1
+    {
+        const float pq_m1 = 0.1593017578125f; // ( 2610.0 / 4096.0 ) / 4.0;
+        const float pq_m2 = 78.84375f;        // ( 2523.0 / 4096.0 ) * 128.0;
+        const float pq_c1 = 0.8359375f;       // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
+        const float pq_c2 = 18.8515625f;      // ( 2413.0 / 4096.0 ) * 32.0;
+        const float pq_c3 = 18.6875f;         // ( 2392.0 / 4096.0 ) * 32.0;
+        const float pq_C  = 100.0f;
+
+        // Note that this does NOT handle any of the signal range
+        // considerations from 2084 - this assumes full range (0 - 1)
+        float Np = powf(pixel, 1.0f / pq_m2);
+        float L  = Np - pq_c1;
+        if (L < 0.0)
+            L = 0.0;
+        L = L / (pq_c2 - pq_c3 * Np);
+        L = powf(L, 1.0f / pq_m1);
+        return L * pq_C; // returns 0-100, 1=100cd/m^2
+    }
+
+    static const float Y_to_ST2084(const float &C) // C should be 0-100, 1=100cd/m^2
+    {
+        if (C <= 0.f)
+            return 0.f;
+        if (C >= 100.f)
+            return 1.f;
+        const float pq_m1 = 0.1593017578125f; // ( 2610.0 / 4096.0 ) / 4.0;
+        const float pq_m2 = 78.84375f;        // ( 2523.0 / 4096.0 ) * 128.0;
+        const float pq_c1 = 0.8359375f;       // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
+        const float pq_c2 = 18.8515625f;      // ( 2413.0 / 4096.0 ) * 32.0;
+        const float pq_c3 = 18.6875f;         // ( 2392.0 / 4096.0 ) * 32.0;
+        const float pq_C  = 100.0f;
+
+        // Note that this does NOT handle any of the signal range
+        // considerations from 2084 - this returns full range (0 - 1)
+        float L  = C / pq_C;
+        float Lm = powf(L, pq_m1);
+        float N  = (pq_c1 + pq_c2 * Lm) / (1.0f + pq_c3 * Lm);
+        N        = powf(N, pq_m2);
+        return N;
+    }
+    static const float Y_to_sRGB(const float &C) // returns signal, 0-1, input 0-1
+    {
+        return (C < 0.f)
+                   ? 0.f
+                   : ((C > 1.f) ? 1.f : ((C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f)));
+    }
+    static const float sRGB_to_Y(const float &C) // returns 0-1, 1=100 nits
+    {
+        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : ((C < 0.04045f) ? C / 12.92f : powf((C + 0.055f) / 1.055f, 2.4f)));
+    }
+    static const float Y_to_BT709(const float &C) // returns signal, 0-1, input 0-1
+    {
+        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : ((C < 0.018f) ? C * 4.50f : (1.099f * powf(C, 0.45f) - 0.099f)));
+    }
+    static const float BT709_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
+    {
+        return (C < 0.f) ? 0.f
+                         : ((C > 1.f) ? 1.f : ((C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f / 0.45f)));
+    }
+
+    static const float Y_to_HLG(const float &C)
+    {
+        const float a = 0.17883277f;
+        const float b = 0.28466892f;
+        const float c = 0.55991073f;
+        return (C < 0.f) ? 0.f : ((C < 1.f) ? (0.5f * sqrtf(C)) : (a * logf(C - b) + c));
+    }
+
+    static const float HLG_to_Y(const float &C)
+    {
+        const float a = 0.17883277f;
+        const float b = 0.28466892f;
+        const float c = 0.55991073f;
+        return (C < 0.f) ? 0.f : ((C <= 0.5f) ? (4.f * C * C) : exp((C - c) / a) + b);
+    }
+
+    static const float CV_to_IRE_SLog2(const float &cv)
+    {
+        const float BLACK = 64.f / 1024.f;
+        const float WV    = 876.f / 1024.f; // 940-64
+        return (cv - BLACK) / WV;
+    }
+    static const float IRE_to_CV_SLog2(const float &ire)
+    {
+        const float BLACK = 64.f / 1024.f;
+        const float WV    = 876.f / 1024.f; // 940-64
+        return (ire * WV) + BLACK;
+    }
+    static const float Y_to_SLog2(const float &x) // returns signal, 0-1, input 0-1
+    {
+        const float y = (x < 0.f) ? x * 3.53881278538813f + 0.030001222851889303f
+                                  : (0.432699f * log10f(155.0f * x / 219.0f + 0.037584f) + 0.616596f) + 0.03f;
+        return IRE_to_CV_SLog2(y);
+    }
+    static const float SLog2_to_Y(const float &C) // returns 0-1, 1=100cd/m^2
+    {
+        const float x = CV_to_IRE_SLog2(C);
+        const float y = (x >= 0.030001222851889303f)
+                            ? 219.0f * (powf(10.0f, ((x - 0.616596f - 0.03f) / 0.432699f)) - 0.037584f) / 155.0f
+                            : (x - 0.030001222851889303f) / 3.53881278538813f;
+        return (y > 0.f) ? y : 0.f;
+    }
+    static const Tristimulus toScreen(TYPE type, const Tristimulus &scene, const float g = 1.f)
+    {
+        switch (type)
+        {
+        case GAMMA:
+        {
+            return Tristimulus(gamma(scene[0], g), gamma(scene[1], g), gamma(scene[2], g));
+        }
+        break;
+        case SRGB:
+        {
+            return Tristimulus(Y_to_sRGB(scene[0]), Y_to_sRGB(scene[1]), Y_to_sRGB(scene[2]));
+        }
+        break;
+        case BT709:
+        {
+            return Tristimulus(Y_to_BT709(scene[0]), Y_to_BT709(scene[1]), Y_to_BT709(scene[2]));
+        }
+        break;
+        case ST2084:
+        {
+            return Tristimulus(Y_to_ST2084(scene[0]), Y_to_ST2084(scene[1]), Y_to_ST2084(scene[2]));
+        }
+        break;
+        case SLOG2:
+        {
+            return Tristimulus(Y_to_SLog2(scene[0]), Y_to_SLog2(scene[1]), Y_to_SLog2(scene[2]));
+        }
+        break;
+        case HLG:
+        {
+            return Tristimulus(Y_to_HLG(scene[0]), Y_to_HLG(scene[1]), Y_to_HLG(scene[2]));
+        }
+        case LINEAR:
+        default:
+            return scene;
+        }
+    }
+    static const Tristimulus toScene(TYPE type, const Tristimulus &screen, const float g = 1.f)
+    {
+        switch (type)
+        {
+        case GAMMA:
+        {
+            return Tristimulus(degamma(screen[0], g), degamma(screen[1], g), degamma(screen[2], g));
+        }
+        break;
+        case SRGB:
+        {
+            return Tristimulus(sRGB_to_Y(screen[0]), sRGB_to_Y(screen[1]), sRGB_to_Y(screen[2]));
+        }
+        break;
+        case BT709:
+        {
+            return Tristimulus(BT709_to_Y(screen[0]), BT709_to_Y(screen[1]), BT709_to_Y(screen[2]));
+        }
+        break;
+        case ST2084:
+        {
+            return Tristimulus(ST2084_to_Y(screen[0]), ST2084_to_Y(screen[1]), ST2084_to_Y(screen[2]));
+        }
+        case SLOG2:
+        {
+            return Tristimulus(SLog2_to_Y(screen[0]), SLog2_to_Y(screen[1]), SLog2_to_Y(screen[2]));
+        }
+        case HLG:
+        {
+            return Tristimulus(HLG_to_Y(screen[0]), HLG_to_Y(screen[1]), HLG_to_Y(screen[2]));
+        }
+        break;
+        case LINEAR:
+        default:
+            return screen;
+        }
     }
 };
 
@@ -1052,205 +1185,10 @@ class MemoryStream
 
 static Gamut loadGamutFromICCProfileMemory(const void *mem, size_t size) 
 {
-    
     MemoryStream stream(mem, size);
     return Gamut("",Matrix3(1,0,0,0,1,0,0,0,1));
 }
 
-class OTF
-{
-  public:
-    typedef enum
-    {
-        LINEAR,
-        GAMMA, // simplest gamma
-        SRGB,
-        BT709,
-        ST2084,
-        SLOG2,
-        HLG // Hybrid-log-gamma
-    } TYPE;
-
-    static float       gamma(const float &v, const float &g) { return powf(v, 1.f / g); }
-    static float       degamma(const float &v, const float &g) { return powf(v, g); }
-    static const float ST2084_to_Y(const float &pixel) // pixel should be 0-1
-    {
-        const float pq_m1 = 0.1593017578125f; // ( 2610.0 / 4096.0 ) / 4.0;
-        const float pq_m2 = 78.84375f;        // ( 2523.0 / 4096.0 ) * 128.0;
-        const float pq_c1 = 0.8359375f;       // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
-        const float pq_c2 = 18.8515625f;      // ( 2413.0 / 4096.0 ) * 32.0;
-        const float pq_c3 = 18.6875f;         // ( 2392.0 / 4096.0 ) * 32.0;
-        const float pq_C  = 100.0f;
-
-        // Note that this does NOT handle any of the signal range
-        // considerations from 2084 - this assumes full range (0 - 1)
-        float Np = powf(pixel, 1.0f / pq_m2);
-        float L  = Np - pq_c1;
-        if (L < 0.0)
-            L = 0.0;
-        L = L / (pq_c2 - pq_c3 * Np);
-        L = powf(L, 1.0f / pq_m1);
-        return L * pq_C; // returns 0-100, 1=100cd/m^2
-    }
-    static const float Y_to_ST2084(const float &C) // C should be 0-100, 1=100cd/m^2
-    {
-        if (C <= 0.f)
-            return 0.f;
-        if (C >= 100.f)
-            return 1.f;
-        const float pq_m1 = 0.1593017578125f; // ( 2610.0 / 4096.0 ) / 4.0;
-        const float pq_m2 = 78.84375f;        // ( 2523.0 / 4096.0 ) * 128.0;
-        const float pq_c1 = 0.8359375f;       // 3424.0 / 4096.0 or pq_c3 - pq_c2 + 1.0;
-        const float pq_c2 = 18.8515625f;      // ( 2413.0 / 4096.0 ) * 32.0;
-        const float pq_c3 = 18.6875f;         // ( 2392.0 / 4096.0 ) * 32.0;
-        const float pq_C  = 100.0f;
-
-        // Note that this does NOT handle any of the signal range
-        // considerations from 2084 - this returns full range (0 - 1)
-        float L  = C / pq_C;
-        float Lm = powf(L, pq_m1);
-        float N  = (pq_c1 + pq_c2 * Lm) / (1.0f + pq_c3 * Lm);
-        N        = powf(N, pq_m2);
-        return N;
-    }
-    static const float Y_to_sRGB(const float &C) // returns signal, 0-1, input 0-1
-    {
-        return (C < 0.f)
-                   ? 0.f
-                   : ((C > 1.f) ? 1.f : ((C < 0.0031308f) ? C * 12.92f : (1.055f * powf(C, 1.0f / 2.4f) - 0.055f)));
-    }
-    static const float sRGB_to_Y(const float &C) // returns 0-1, 1=100 nits
-    {
-        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : ((C < 0.04045f) ? C / 12.92f : powf((C + 0.055f) / 1.055f, 2.4f)));
-    }
-    static const float Y_to_BT709(const float &C) // returns signal, 0-1, input 0-1
-    {
-        return (C < 0.f) ? 0.f : ((C > 1.f) ? 1.f : ((C < 0.018f) ? C * 4.50f : (1.099f * powf(C, 0.45f) - 0.099f)));
-    }
-    static const float BT709_to_Y(const float &C) // returns nits, 0-100[cd/m^2]
-    {
-        return (C < 0.f) ? 0.f
-                         : ((C > 1.f) ? 1.f : ((C < 0.081f) ? C / 4.50f : powf((C + 0.099f) / 1.099f, 1.f / 0.45f)));
-    }
-
-    static const float Y_to_HLG(const float &C)
-    {
-        const float a = 0.17883277f;
-        const float b = 0.28466892f;
-        const float c = 0.55991073f;
-        return (C < 0.f) ? 0.f : ((C < 1.f) ? (0.5f * sqrtf(C)) : (a * logf(C - b) + c));
-    }
-
-    static const float HLG_to_Y(const float &C)
-    {
-        const float a = 0.17883277f;
-        const float b = 0.28466892f;
-        const float c = 0.55991073f;
-        return (C < 0.f) ? 0.f : ((C <= 0.5f) ? (4.f * C * C) : exp((C - c) / a) + b);
-    }
-
-    static const float CV_to_IRE_SLog2(const float &cv)
-    {
-        const float BLACK = 64.f / 1024.f;
-        const float WV    = 876.f / 1024.f; // 940-64
-        return (cv - BLACK) / WV;
-    }
-    static const float IRE_to_CV_SLog2(const float &ire)
-    {
-        const float BLACK = 64.f / 1024.f;
-        const float WV    = 876.f / 1024.f; // 940-64
-        return (ire * WV) + BLACK;
-    }
-    static const float Y_to_SLog2(const float &x) // returns signal, 0-1, input 0-1
-    {
-        const float y = (x < 0.f) ? x * 3.53881278538813f + 0.030001222851889303f
-                                  : (0.432699f * log10f(155.0f * x / 219.0f + 0.037584f) + 0.616596f) + 0.03f;
-        return IRE_to_CV_SLog2(y);
-    }
-    static const float SLog2_to_Y(const float &C) // returns 0-1, 1=100cd/m^2
-    {
-        const float x = CV_to_IRE_SLog2(C);
-        const float y = (x >= 0.030001222851889303f)
-                            ? 219.0f * (powf(10.0f, ((x - 0.616596f - 0.03f) / 0.432699f)) - 0.037584f) / 155.0f
-                            : (x - 0.030001222851889303f) / 3.53881278538813f;
-        return (y > 0.f) ? y : 0.f;
-    }
-    static const Tristimulus toScreen(TYPE type, const Tristimulus &scene, const float g = 1.f)
-    {
-        switch (type)
-        {
-        case GAMMA:
-        {
-            return Tristimulus(gamma(scene[0], g), gamma(scene[1], g), gamma(scene[2], g));
-        }
-        break;
-        case SRGB:
-        {
-            return Tristimulus(Y_to_sRGB(scene[0]), Y_to_sRGB(scene[1]), Y_to_sRGB(scene[2]));
-        }
-        break;
-        case BT709:
-        {
-            return Tristimulus(Y_to_BT709(scene[0]), Y_to_BT709(scene[1]), Y_to_BT709(scene[2]));
-        }
-        break;
-        case ST2084:
-        {
-            return Tristimulus(Y_to_ST2084(scene[0]), Y_to_ST2084(scene[1]), Y_to_ST2084(scene[2]));
-        }
-        break;
-        case SLOG2:
-        {
-            return Tristimulus(Y_to_SLog2(scene[0]), Y_to_SLog2(scene[1]), Y_to_SLog2(scene[2]));
-        }
-        break;
-        case HLG:
-        {
-            return Tristimulus(Y_to_HLG(scene[0]), Y_to_HLG(scene[1]), Y_to_HLG(scene[2]));
-        }
-        case LINEAR:
-        default:
-            return scene;
-        }
-    }
-    static const Tristimulus toScene(TYPE type, const Tristimulus &screen, const float g = 1.f)
-    {
-        switch (type)
-        {
-        case GAMMA:
-        {
-            return Tristimulus(degamma(screen[0], g), degamma(screen[1], g), degamma(screen[2], g));
-        }
-        break;
-        case SRGB:
-        {
-            return Tristimulus(sRGB_to_Y(screen[0]), sRGB_to_Y(screen[1]), sRGB_to_Y(screen[2]));
-        }
-        break;
-        case BT709:
-        {
-            return Tristimulus(BT709_to_Y(screen[0]), BT709_to_Y(screen[1]), BT709_to_Y(screen[2]));
-        }
-        break;
-        case ST2084:
-        {
-            return Tristimulus(ST2084_to_Y(screen[0]), ST2084_to_Y(screen[1]), ST2084_to_Y(screen[2]));
-        }
-        case SLOG2:
-        {
-            return Tristimulus(SLog2_to_Y(screen[0]), SLog2_to_Y(screen[1]), SLog2_to_Y(screen[2]));
-        }
-        case HLG:
-        {
-            return Tristimulus(HLG_to_Y(screen[0]), HLG_to_Y(screen[1]), HLG_to_Y(screen[2]));
-        }
-        break;
-        case LINEAR:
-        default:
-            return screen;
-        }
-    }
-}; // namespace ColorSystem
 
 class Spectrum
 {
@@ -1358,6 +1296,137 @@ class Spectrum
         return dotHelper3(a, b, c, 399);
     }
 };
+
+// standard illuminants
+static constexpr Tristimulus Illuminant_A(1.09850f, 1.f, 0.35585f);
+static constexpr Tristimulus Illuminant_B(1.99072f, 1.f, 0.85223f);
+static constexpr Tristimulus Illuminant_C(0.98074f, 1.0f, 1.18232f);
+static constexpr Tristimulus Illuminant_D50(0.96422f, 1.0f, 0.82521f);
+static constexpr Tristimulus Illuminant_D55(0.95682f, 1.0f, 0.92149f);
+static constexpr Tristimulus Illuminant_D60(0.95265f, 1.0f, 1.00883f); // by ACES TB-2014-004.pdf
+static constexpr Tristimulus Illuminant_D65(0.95047f, 1.0f, 1.08883f);
+static constexpr Tristimulus Illuminant_D75(0.94972f, 1.0f, 1.22638f);
+static constexpr Tristimulus Illuminant_E(1.f, 1.f, 1.f);
+static constexpr Tristimulus Illuminant_F2(0.99186f, 1.f, 0.67393f);
+static constexpr Tristimulus Illuminant_F7(0.95041f, 1.f, 1.08747f);
+static constexpr Tristimulus Illuminant_F11(1.00962f, 1.f, 0.64350f);
+
+// xR,yR,xG,yG,xB,yB,xW,yW
+static constexpr Gamut AdobeRGB("AdobeRGB", 0.64f, 0.33f, 0.21f, 0.71f, 0.15f, 0.06f, 0.3127f, 0.3290f);
+static constexpr Gamut Rec709("Rec.709", 0.64f, 0.33f, 0.30f, 0.60f, 0.15f, 0.06f, 0.3127f, 0.3290f);
+static constexpr Gamut Rec2020("Rec.2020", 0.708f, 0.292f, 0.17f, 0.797f, 0.131f, 0.046f, 0.3127f, 0.3290f);
+static constexpr Gamut DCI_P3("DCI P3", 0.68f, 0.32f, 0.265f, 0.69f, 0.15f, 0.06f, 0.314f, 0.351f);
+static constexpr Gamut S_Gamut("S-Gamut", 0.73f, 0.28f, 0.14f, 0.855f, 0.10f, -0.05f, 0.3127f, 0.3290f);
+static constexpr Gamut S_Gamut3_Cine(
+    "S-Gamut3.Cine", 0.766f, 0.275f, 0.225f, 0.800f, 0.089f, -0.087f, 0.3127f, 0.3290f);
+static constexpr Gamut ACEScg("ACES cg", 0.713f, 0.293f, 0.165f, 0.830f, 0.128f, 0.044f, 0.32168f, 0.33767f);     // AP1
+static constexpr Gamut ACES2065("ACES 2065", 0.73470f, 0.26530f, 0.f, 1.f, 0.0001f, -0.077f, 0.32168f, 0.33767f); // AP0
+static constexpr Gamut LMS("LMS",
+    Matrix3(0.8951f, 0.2664f, -0.1614f, -0.7502f, 1.7135f, 0.0367f, 0.0389f, -0.0685f, 1.0296f)); // fromXYZ matrix.
+static constexpr Gamut XYZ("XYZ", Matrix3(1, 0, 0, 0, 1, 0, 0, 0, 1));
+
+// returns Gamut convert matrix
+static constexpr Matrix3 GamutConvert(const Gamut &src, const Gamut &dst) { return dst.fromXYZ().mul(src.toXYZ()); }
+
+// returns Bradford adaptation matrix
+static constexpr Matrix3 Bradford(const Tristimulus &white_src, const Tristimulus &white_dst)
+{
+    const Tristimulus &lms_src(LMS.fromXYZ(white_src));
+    const Tristimulus &lms_dst(LMS.fromXYZ(white_dst));
+    const Matrix3      scale(
+        Matrix3::diag(Vector3(lms_dst[0] / lms_src[0], lms_dst[1] / lms_src[1], lms_dst[2] / lms_src[2])));
+    return LMS.toXYZ().mul(scale).mul(LMS.fromXYZ());
+}
+
+static constexpr Tristimulus XYZ_to_ICtCp(const Tristimulus& xyz)
+{
+    const Tristimulus lms = LMS.fromXYZ(xyz);
+    const Tristimulus pq = Tristimulus(
+        OTF::Y_to_ST2084(lms[0]/100.f),
+        OTF::Y_to_ST2084(lms[1]/100.f),
+        OTF::Y_to_ST2084(lms[2]/100.f)
+    ); // map 10000 nits to 0-100
+    return Tristimulus(
+        (pq[0]+pq[1])*0.5f,
+        (6610.f * pq[0] - 13613.f * pq[1] + 7003.f * pq[2])/4096.f,
+        (17933.f * pq[0] - 17390.f * pq[1] + 543.f * pq[2])/4096.f
+    );
+}
+
+// Color Differences
+class Delta
+{
+  public:
+    static const float UV(const Tristimulus &a_Yuv, const Tristimulus &b_Yuv) // a, b both are XYZ
+    {
+        return sqrtf((a_Yuv[1] - b_Yuv[1]) * (a_Yuv[1] - b_Yuv[1]) + (a_Yuv[2] - b_Yuv[2]) * (a_Yuv[2] - b_Yuv[2]));
+    }
+    static const float E76(const Tristimulus &a_LAB, const Tristimulus &b_LAB)
+    {
+        return sqrtf((a_LAB[0] - b_LAB[0]) * (a_LAB[0] - b_LAB[0]) + (a_LAB[1] - b_LAB[1]) * (a_LAB[1] - b_LAB[1]) +
+                     (a_LAB[2] - b_LAB[2]) * (a_LAB[2] - b_LAB[2]));
+    }
+    static const float E00(const Tristimulus &lab1, const Tristimulus &lab2, const float &Kl = 1.f,
+        const float &Kc = 1.f, const float &Kh = 1.f)
+    {
+        const float PI      = 3.14159265358979323846264338327950288f;
+        const float L1      = lab1[0];
+        const float a1      = lab1[1];
+        const float b1      = lab1[2];
+        const float L2      = lab2[0];
+        const float a2      = lab2[1];
+        const float b2      = lab2[2];
+        const float Lbar    = (L1 + L2) / 2.f;
+        const float C1      = sqrtf(a1 * a1 + b1 * b1);
+        const float C2      = sqrtf(a2 * a2 + b2 * b2);
+        const float Cbar    = (C1 + C2) / 2.f;
+        const float C7      = powf(Cbar, 7.f);
+        const float pow25_7 = 25.f * 25.f * 25.f * 25.f * 25.f * 25.f * 25.f;
+        const float G       = (1.f - sqrtf(C7 / (C7 + pow25_7))) / 2.f;
+        const float ad1     = a1 * (1.f + G);
+        const float ad2     = a2 * (1.f + G);
+        const float Cd1     = sqrtf(ad1 * ad1 + b1 * b1);
+        const float Cd2     = sqrtf(ad2 * ad2 + b2 * b2);
+        const float CdBar   = (Cd1 + Cd2) / 2.f;
+        const float h1      = fmodf(360.f + atan2f(b1, ad1) * 180.0f / PI, 360.f);
+        const float h2      = fmodf(360.f + atan2f(b2, ad2) * 180.0f / PI, 360.f);
+        const float HdBar   = (fabs(h1 - h2) > 180.f ? (h1 + h2 + 360.f) : (h1 + h2)) / 2.f;
+        const float T1      = 1.f - 0.17f * cosf(PI * (1.f * HdBar - 30.f) / 180.f);
+        const float T2      = 0.24f * cosf(PI * (2.f * HdBar) / 180.f) + 0.32f * cosf(PI * (3.f * HdBar + 6.f) / 180.f);
+        const float T3      = 0.20f * cosf(PI * (4.f * HdBar - 63.f) / 180.f);
+        const float T       = T1 + T2 - T3;
+        const float deltah  = (fabs(h2 - h1) <= 180.f) ? h2 - h1 : ((h2 <= h1) ? h2 - h1 + 360.f : h2 - h1 - 360.f);
+        const float deltaL  = L2 - L1;
+        const float deltaC  = Cd2 - Cd1;
+        const float deltaH  = 2.f * sqrtf(Cd1 * Cd2) * sinf(PI * deltah / (180.f * 2.f));
+        const float Lbar2   = (Lbar - 50.f) * (Lbar - 50.f);
+        const float Sl      = 1.f + 0.015f * Lbar2 / sqrtf(20.f + Lbar2);
+        const float Sc      = 1.f + 0.045f * CdBar;
+        const float Sh      = 1.f + 0.015f * CdBar * T;
+        const float HdBar2  = (HdBar - 275.f) * (HdBar - 275.f) / (25.f * 25.f);
+        const float deltaTheta = 30.f * expf(-HdBar2);
+        const float CdBar7     = powf(CdBar, 7.f);
+        const float Rc         = 2.f * sqrtf(CdBar7 / (CdBar7 + pow25_7));
+        const float Rt         = -Rc * sinf(2.f * deltaTheta * PI / 180.f);
+        const float dl         = deltaL / (Kl * Sl);
+        const float dc         = deltaC / (Kc * Sc);
+        const float dh         = deltaH / (Kh * Sh);
+
+        return sqrtf(dl * dl + dc * dc + dh * dh + Rt * dc * dh);
+    }
+
+    //https://calman.spectracal.com/delta-ictcp-color-difference-metric.html
+    static const float ICtCp(const Tristimulus& a_xyz, const Tristimulus& b_xyz)
+    {
+        const Tristimulus a_itp = XYZ_to_ICtCp(a_xyz);
+        const Tristimulus b_itp = XYZ_to_ICtCp(b_xyz);
+        const float dI = a_itp[0] - b_itp[0];
+        const float dT = a_itp[1] - b_itp[1];
+        const float dP = a_itp[2] - b_itp[2];
+        return sqrtf(dI*dI + dT*dT*0.25f + dP*dP);
+    }
+};
+
 
 class Observer
 {
@@ -1936,47 +2005,6 @@ static constexpr Spectrum CIE_D65({49.97550f, 50.44276f, 50.91002f, 51.37728f, 5
 static constexpr Observer CIE1931(CIE1931_X, CIE1931_Y, CIE1931_Z);
 static constexpr Observer CIE31JV(CIE1931_JuddVos_X, CIE1931_JuddVos_Y, CIE1931_JuddVos_Z);
 static constexpr Observer CIE2012(CIE2012_X, CIE2012_Y, CIE2012_Z);
-
-// standard illuminants
-static constexpr Tristimulus Illuminant_A(1.09850f, 1.f, 0.35585f);
-static constexpr Tristimulus Illuminant_B(1.99072f, 1.f, 0.85223f);
-static constexpr Tristimulus Illuminant_C(0.98074f, 1.0f, 1.18232f);
-static constexpr Tristimulus Illuminant_D50(0.96422f, 1.0f, 0.82521f);
-static constexpr Tristimulus Illuminant_D55(0.95682f, 1.0f, 0.92149f);
-static constexpr Tristimulus Illuminant_D60(0.95265f, 1.0f, 1.00883f); // by ACES TB-2014-004.pdf
-static constexpr Tristimulus Illuminant_D65(0.95047f, 1.0f, 1.08883f);
-static constexpr Tristimulus Illuminant_D75(0.94972f, 1.0f, 1.22638f);
-static constexpr Tristimulus Illuminant_E(1.f, 1.f, 1.f);
-static constexpr Tristimulus Illuminant_F2(0.99186f, 1.f, 0.67393f);
-static constexpr Tristimulus Illuminant_F7(0.95041f, 1.f, 1.08747f);
-static constexpr Tristimulus Illuminant_F11(1.00962f, 1.f, 0.64350f);
-
-// xR,yR,xG,yG,xB,yB,xW,yW
-static constexpr Gamut AdobeRGB("AdobeRGB", 0.64f, 0.33f, 0.21f, 0.71f, 0.15f, 0.06f, 0.3127f, 0.3290f);
-static constexpr Gamut Rec709("Rec.709", 0.64f, 0.33f, 0.30f, 0.60f, 0.15f, 0.06f, 0.3127f, 0.3290f);
-static constexpr Gamut Rec2020("Rec.2020", 0.708f, 0.292f, 0.17f, 0.797f, 0.131f, 0.046f, 0.3127f, 0.3290f);
-static constexpr Gamut DCI_P3("DCI P3", 0.68f, 0.32f, 0.265f, 0.69f, 0.15f, 0.06f, 0.314f, 0.351f);
-static constexpr Gamut S_Gamut("S-Gamut", 0.73f, 0.28f, 0.14f, 0.855f, 0.10f, -0.05f, 0.3127f, 0.3290f);
-static constexpr Gamut S_Gamut3_Cine(
-    "S-Gamut3.Cine", 0.766f, 0.275f, 0.225f, 0.800f, 0.089f, -0.087f, 0.3127f, 0.3290f);
-static constexpr Gamut ACEScg("ACES cg", 0.713f, 0.293f, 0.165f, 0.830f, 0.128f, 0.044f, 0.32168f, 0.33767f);     // AP1
-static constexpr Gamut ACES2065("ACES 2065", 0.73470f, 0.26530f, 0.f, 1.f, 0.0001f, -0.077f, 0.32168f, 0.33767f); // AP0
-static constexpr Gamut LMS("LMS",
-    Matrix3(0.8951f, 0.2664f, -0.1614f, -0.7502f, 1.7135f, 0.0367f, 0.0389f, -0.0685f, 1.0296f)); // fromXYZ matrix.
-static constexpr Gamut XYZ("XYZ", Matrix3(1, 0, 0, 0, 1, 0, 0, 0, 1));
-
-// returns Gamut convert matrix
-static constexpr Matrix3 GamutConvert(const Gamut &src, const Gamut &dst) { return dst.fromXYZ().mul(src.toXYZ()); }
-
-// returns Bradford adaptation matrix
-static constexpr Matrix3 Bradford(const Tristimulus &white_src, const Tristimulus &white_dst)
-{
-    const Tristimulus &lms_src(LMS.fromXYZ(white_src));
-    const Tristimulus &lms_dst(LMS.fromXYZ(white_dst));
-    const Matrix3      scale(
-        Matrix3::diag(Vector3(lms_dst[0] / lms_src[0], lms_dst[1] / lms_src[1], lms_dst[2] / lms_src[2])));
-    return LMS.toXYZ().mul(scale).mul(LMS.fromXYZ());
-}
 
 // ------------------ IES TM-30-15 spectrums.
 
@@ -7246,6 +7274,8 @@ namespace Macbeth
     }
 
 } // namespace Macbeth
+
+
 
 // ---
 namespace SOLVER
