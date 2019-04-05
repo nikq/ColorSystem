@@ -1326,6 +1326,18 @@ static constexpr Gamut ACES2065("ACES 2065", 0.73470f, 0.26530f, 0.f, 1.f, 0.000
 static constexpr Gamut LMS("LMS",
     Matrix3(0.8951f, 0.2664f, -0.1614f, -0.7502f, 1.7135f, 0.0367f, 0.0389f, -0.0685f, 1.0296f)); // fromXYZ matrix.
 static constexpr Gamut XYZ("XYZ", Matrix3(1, 0, 0, 0, 1, 0, 0, 0, 1));
+static constexpr Gamut ILCE_A7(
+    "ILCE_A7", 0.686735f, 0.280168f, 0.237965f, 1.026053f, -0.018294f, -0.293924f, 0.389834f, 0.394774f);
+static constexpr Gamut ILCE_A7m2(
+    "ILCE_A7m2", 0.687184f, 0.277819f, 0.236749f, 1.041250f, -0.008079f, -0.284386f, 0.388228f, 0.396731f);
+static constexpr Gamut ILCE_A7m3(
+    "ILCE_A7m3", 0.767681f, 0.252587f, 0.233504f, 1.064467f, 0.030738f, -0.201807f, 0.374990f, 0.375177f);
+static constexpr Gamut ILCE_A7R(
+    "ILCE_A7R", 0.683237f, 0.278747f, 0.218972f, 1.032492f, -0.016452f, -0.301908f, 0.395316f, 0.388371f);
+static constexpr Gamut ILCE_A7Rm2(
+    "ILCE_A7Rm2", 0.709406f, 0.258862f, 0.296480f, 0.921137f, 0.038828f, -0.197564f, 0.377470f, 0.372080f);
+static constexpr Gamut ILCE_A7Rm3(
+    "ILCE_A7Rm3", 0.738481f, 0.254700f, 0.257656f, 0.946727f, 0.031201f, -0.224184f, 0.381598f, 0.374049f);
 
 // returns Gamut convert matrix
 static constexpr Matrix3 GamutConvert(const Gamut &src, const Gamut &dst) { return dst.fromXYZ().mul(src.toXYZ()); }
