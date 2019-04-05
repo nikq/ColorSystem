@@ -480,7 +480,7 @@ class Tristimulus
 class Gamut
 {
   public:
-    std::string name_;
+    const char *name_;
     Matrix3     toXYZ_;
     Matrix3     fromXYZ_;
 
@@ -509,7 +509,7 @@ class Gamut
     {
         ;
     }
-    const std::string name(void) const { return name_; }
+    const char *name(void) const { return name_; }
 
     constexpr Matrix3     toXYZ(void) const { return toXYZ_; }
     constexpr Matrix3     fromXYZ(void) const { return fromXYZ_; }
