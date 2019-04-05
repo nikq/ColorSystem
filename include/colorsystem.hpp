@@ -12,6 +12,8 @@
 #include <array>
 #include <assert.h>
 #include <limits>
+#include <string>
+
 #include <math.h>
 #include <stdio.h>
 #include <vector>
@@ -478,7 +480,7 @@ class Tristimulus
 class Gamut
 {
   public:
-    const char *name_;
+    std::string name_;
     Matrix3     toXYZ_;
     Matrix3     fromXYZ_;
 
@@ -507,7 +509,7 @@ class Gamut
     {
         ;
     }
-    const char *name(void) const { return name_; }
+    const std::string name(void) const { return name_; }
 
     constexpr Matrix3     toXYZ(void) const { return toXYZ_; }
     constexpr Matrix3     fromXYZ(void) const { return fromXYZ_; }
