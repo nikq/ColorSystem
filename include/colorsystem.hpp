@@ -366,7 +366,7 @@ class Tristimulus
         const float du = u2 - u1;
         const float dv = v2 - v1;
         const float l  = util::sqrtf(du * du + dv * dv);
-        return x_from_uv(u1 - dUV * du / l, v1 + dUV * dv / l);
+        return x_from_uv(u1 - dUV * dv / l, v1 + dUV * du / l);
     }
     static constexpr float CCT_y_approx(const float &T, const float &dUV)
     {
@@ -381,11 +381,11 @@ class Tristimulus
         const float du = u2 - u1;
         const float dv = v2 - v1;
         const float l  = util::sqrtf(du * du + dv * dv);
-        return y_from_uv(u1 - dUV * du / l, v1 + dUV * dv / l);
+        return y_from_uv(u1 - dUV * dv / l, v1 + dUV * du / l);
     }
     static constexpr Tristimulus fromCCT(const float &T, const float &dUV, const float Y = 1.f)
     {
-        return Tristimulus(Y, CCT_x_approx(T, dUV), CCT_y_approx(T, dUV)).fromYuv();
+        return Tristimulus(Y, CCT_x_approx(T, dUV), CCT_y_approx(T, dUV)).fromYxy();
     }
 
     // Lab
@@ -763,15 +763,15 @@ class MemoryStream
 
   public:
     MemoryStream() { init(); }
-    MemoryStream(const void *data,size_t sz){init(data,sz);}
+    MemoryStream(const void *data, size_t sz) { init(data, sz); }
     std::vector<uint8_t>  buffer_;
     std::vector<uint8_t> &buffer() { return buffer_; }
 
-    int     ptr_;
-    ENDIAN  readEndian_;
-    ENDIAN  writeEndian_;
+    int    ptr_;
+    ENDIAN readEndian_;
+    ENDIAN writeEndian_;
 
-    void init(const void *data = NULL,size_t sz = 0)
+    void init(const void *data = NULL, size_t sz = 0)
     {
         if (data)
         {
@@ -836,8 +836,8 @@ class MemoryStream
     }
     size_t read_at(void *buffer, size_t s, Pointer p)
     {
-        int r      = (int)buffer_.size() - (int)p;
-        if( r < 0 )
+        int r = (int)buffer_.size() - (int)p;
+        if (r < 0)
             return 0;
         size_t remain = (s < r) ? s : r;
         memcpy(buffer, ptr(p), remain);
@@ -891,8 +891,8 @@ class MemoryStream
         }
         assert(false);
     }
-    void setReadEndian(const ENDIAN e) { readEndian_ = e; }
-    void setWriteEndian(const ENDIAN e) { writeEndian_ = e; }
+    void         setReadEndian(const ENDIAN e) { readEndian_ = e; }
+    void         setWriteEndian(const ENDIAN e) { writeEndian_ = e; }
     const int8_t getInt8(void)
     {
         uint8_t uc = getUint8();
@@ -958,7 +958,7 @@ class MemoryStream
         union
         {
             uint32_t ui;
-            float     f;
+            float    f;
         } x;
         x.ui = getUint32();
         return x.f;
@@ -996,7 +996,7 @@ class MemoryStream
     void align(int a)
     {
         size_t s = ftell();
-        int m = (a - (s % a)) % a;
+        int    m = (a - (s % a)) % a;
         fseek(m, CURRENT);
     }
     Pointer getPointer32(void)
@@ -1185,12 +1185,11 @@ class MemoryStream
     void putString(const std::string &str) { putSubstr(str, str.size()); }
 };
 
-static Gamut loadGamutFromICCProfileMemory(const void *mem, size_t size) 
+static Gamut loadGamutFromICCProfileMemory(const void *mem, size_t size)
 {
     MemoryStream stream(mem, size);
-    return Gamut("",Matrix3(1,0,0,0,1,0,0,0,1));
+    return Gamut("", Matrix3(1, 0, 0, 0, 1, 0, 0, 0, 1));
 }
-
 
 class Spectrum
 {
@@ -1331,28 +1330,24 @@ static constexpr Gamut XYZ("XYZ", Matrix3(1, 0, 0, 0, 1, 0, 0, 0, 1));
 static constexpr Matrix3 GamutConvert(const Gamut &src, const Gamut &dst) { return dst.fromXYZ().mul(src.toXYZ()); }
 
 // returns Bradford adaptation matrix
-static constexpr Matrix3 Bradford(const Tristimulus &white_src, const Tristimulus &white_dst)
+static /*constexpr*/ Matrix3 Bradford(const Tristimulus &white_src, const Tristimulus &white_dst)
 {
     const Tristimulus &lms_src(LMS.fromXYZ(white_src));
     const Tristimulus &lms_dst(LMS.fromXYZ(white_dst));
-    const Matrix3      scale(
+    
+    const Matrix3 scale(
         Matrix3::diag(Vector3(lms_dst[0] / lms_src[0], lms_dst[1] / lms_src[1], lms_dst[2] / lms_src[2])));
+
     return LMS.toXYZ().mul(scale).mul(LMS.fromXYZ());
 }
 
-static constexpr Tristimulus XYZ_to_ICtCp(const Tristimulus& xyz)
+static constexpr Tristimulus XYZ_to_ICtCp(const Tristimulus &xyz)
 {
     const Tristimulus lms = LMS.fromXYZ(xyz);
-    const Tristimulus pq = Tristimulus(
-        OTF::Y_to_ST2084(lms[0]/100.f),
-        OTF::Y_to_ST2084(lms[1]/100.f),
-        OTF::Y_to_ST2084(lms[2]/100.f)
-    ); // map 10000 nits to 0-100
-    return Tristimulus(
-        (pq[0]+pq[1])*0.5f,
-        (6610.f * pq[0] - 13613.f * pq[1] + 7003.f * pq[2])/4096.f,
-        (17933.f * pq[0] - 17390.f * pq[1] + 543.f * pq[2])/4096.f
-    );
+    const Tristimulus pq  = Tristimulus(OTF::Y_to_ST2084(lms[0] / 100.f), OTF::Y_to_ST2084(lms[1] / 100.f),
+        OTF::Y_to_ST2084(lms[2] / 100.f)); // map 10000 nits to 0-100
+    return Tristimulus((pq[0] + pq[1]) * 0.5f, (6610.f * pq[0] - 13613.f * pq[1] + 7003.f * pq[2]) / 4096.f,
+        (17933.f * pq[0] - 17390.f * pq[1] + 543.f * pq[2]) / 4096.f);
 }
 
 // Color Differences
@@ -1417,18 +1412,17 @@ class Delta
         return sqrtf(dl * dl + dc * dc + dh * dh + Rt * dc * dh);
     }
 
-    //https://calman.spectracal.com/delta-ictcp-color-difference-metric.html
-    static const float ICtCp(const Tristimulus& a_xyz, const Tristimulus& b_xyz)
+    // https://calman.spectracal.com/delta-ictcp-color-difference-metric.html
+    static const float ICtCp(const Tristimulus &a_xyz, const Tristimulus &b_xyz)
     {
         const Tristimulus a_itp = XYZ_to_ICtCp(a_xyz);
         const Tristimulus b_itp = XYZ_to_ICtCp(b_xyz);
-        const float dI = a_itp[0] - b_itp[0];
-        const float dT = a_itp[1] - b_itp[1];
-        const float dP = a_itp[2] - b_itp[2];
-        return sqrtf(dI*dI + dT*dT*0.25f + dP*dP);
+        const float       dI    = a_itp[0] - b_itp[0];
+        const float       dT    = a_itp[1] - b_itp[1];
+        const float       dP    = a_itp[2] - b_itp[2];
+        return sqrtf(dI * dI + dT * dT * 0.25f + dP * dP);
     }
 };
-
 
 class Observer
 {
@@ -7276,8 +7270,6 @@ namespace Macbeth
     }
 
 } // namespace Macbeth
-
-
 
 // ---
 namespace SOLVER
