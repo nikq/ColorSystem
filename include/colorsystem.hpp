@@ -98,6 +98,19 @@ class Matrix3
     }
     constexpr Matrix3 transpose(void) const { return transpose(*this); }
 
+    static constexpr Matrix3 crosstalk(const float r)
+    {
+        const float a = 1.f - 2.f * r;
+        return Matrix3(a, r, r, r, a, r, r, r, a);
+    }
+    static constexpr Matrix3 crosstalkInvert(const float r)
+    {
+        const float i = 1.f / (3.f * r - 1.f);
+        const float a = (r - 1.f) * i;
+        const float b = r * i;
+        return Matrix3(a, b, b, b, a, b, b, b, a);
+    }
+
     static constexpr Matrix3 mul(const Matrix3 &a, const Matrix3 &b)
     {
         return Matrix3(a[M(0, 0)] * b[M(0, 0)] + a[M(1, 0)] * b[M(0, 1)] + a[M(2, 0)] * b[M(0, 2)],
@@ -667,33 +680,27 @@ class OTF
     {
         switch (type)
         {
-        case GAMMA:
-        {
+        case GAMMA: {
             return Tristimulus(gamma(scene[0], g), gamma(scene[1], g), gamma(scene[2], g));
         }
         break;
-        case SRGB:
-        {
+        case SRGB: {
             return Tristimulus(Y_to_sRGB(scene[0]), Y_to_sRGB(scene[1]), Y_to_sRGB(scene[2]));
         }
         break;
-        case BT709:
-        {
+        case BT709: {
             return Tristimulus(Y_to_BT709(scene[0]), Y_to_BT709(scene[1]), Y_to_BT709(scene[2]));
         }
         break;
-        case ST2084:
-        {
+        case ST2084: {
             return Tristimulus(Y_to_ST2084(scene[0]), Y_to_ST2084(scene[1]), Y_to_ST2084(scene[2]));
         }
         break;
-        case SLOG2:
-        {
+        case SLOG2: {
             return Tristimulus(Y_to_SLog2(scene[0]), Y_to_SLog2(scene[1]), Y_to_SLog2(scene[2]));
         }
         break;
-        case HLG:
-        {
+        case HLG: {
             return Tristimulus(Y_to_HLG(scene[0]), Y_to_HLG(scene[1]), Y_to_HLG(scene[2]));
         }
         case LINEAR:
@@ -705,31 +712,25 @@ class OTF
     {
         switch (type)
         {
-        case GAMMA:
-        {
+        case GAMMA: {
             return Tristimulus(degamma(screen[0], g), degamma(screen[1], g), degamma(screen[2], g));
         }
         break;
-        case SRGB:
-        {
+        case SRGB: {
             return Tristimulus(sRGB_to_Y(screen[0]), sRGB_to_Y(screen[1]), sRGB_to_Y(screen[2]));
         }
         break;
-        case BT709:
-        {
+        case BT709: {
             return Tristimulus(BT709_to_Y(screen[0]), BT709_to_Y(screen[1]), BT709_to_Y(screen[2]));
         }
         break;
-        case ST2084:
-        {
+        case ST2084: {
             return Tristimulus(ST2084_to_Y(screen[0]), ST2084_to_Y(screen[1]), ST2084_to_Y(screen[2]));
         }
-        case SLOG2:
-        {
+        case SLOG2: {
             return Tristimulus(SLog2_to_Y(screen[0]), SLog2_to_Y(screen[1]), SLog2_to_Y(screen[2]));
         }
-        case HLG:
-        {
+        case HLG: {
             return Tristimulus(HLG_to_Y(screen[0]), HLG_to_Y(screen[1]), HLG_to_Y(screen[2]));
         }
         break;
@@ -794,18 +795,15 @@ class MemoryStream
         int ptr_p = ptr_;
         switch (cursor)
         {
-        case TOP:
-        {
+        case TOP: {
             ptr_ = offs;
         }
         break;
-        case CURRENT:
-        {
+        case CURRENT: {
             ptr_ += offs;
         }
         break;
-        case END:
-        {
+        case END: {
             ptr_ = (int)buffer_.size() - offs - 1;
         }
         break;
@@ -1334,20 +1332,28 @@ static /*constexpr*/ Matrix3 Bradford(const Tristimulus &white_src, const Tristi
 {
     const Tristimulus &lms_src(LMS.fromXYZ(white_src));
     const Tristimulus &lms_dst(LMS.fromXYZ(white_dst));
-    
+
     const Matrix3 scale(
         Matrix3::diag(Vector3(lms_dst[0] / lms_src[0], lms_dst[1] / lms_src[1], lms_dst[2] / lms_src[2])));
 
     return LMS.toXYZ().mul(scale).mul(LMS.fromXYZ());
 }
 
-static constexpr Tristimulus XYZ_to_ICtCp(const Tristimulus &xyz)
+static const Tristimulus XYZ_to_ICtCp(const Tristimulus &xyz)
 {
     const Tristimulus lms = LMS.fromXYZ(xyz);
     const Tristimulus pq  = Tristimulus(OTF::Y_to_ST2084(lms[0] / 100.f), OTF::Y_to_ST2084(lms[1] / 100.f),
         OTF::Y_to_ST2084(lms[2] / 100.f)); // map 10000 nits to 0-100
     return Tristimulus((pq[0] + pq[1]) * 0.5f, (6610.f * pq[0] - 13613.f * pq[1] + 7003.f * pq[2]) / 4096.f,
         (17933.f * pq[0] - 17390.f * pq[1] + 543.f * pq[2]) / 4096.f);
+}
+
+static const Tristimulus ICtCp_to_XYZ(const Tristimulus &icc)
+{
+    const Tristimulus lms(OTF::ST2084_to_Y(icc[0] + 0.00860904f * icc[1] + 0.11103f * icc[2]) * 100.f,
+        OTF::ST2084_to_Y(icc[0] - 0.00860904f * icc[1] - 0.11103f * icc[2]) * 100.f,
+        OTF::ST2084_to_Y(icc[0] + 0.560031f * icc[1] - 0.320627f * icc[2]) * 100.f);
+    return LMS.toXYZ(lms);
 }
 
 // Color Differences
