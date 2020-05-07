@@ -1341,19 +1341,24 @@ static /*constexpr*/ Matrix3 Bradford(const Tristimulus &white_src, const Tristi
 
 static const Tristimulus XYZ_to_ICtCp(const Tristimulus &xyz)
 {
-    const Tristimulus lms = LMS.fromXYZ(xyz);
-    const Tristimulus pq  = Tristimulus(OTF::Y_to_ST2084(lms[0] / 100.f), OTF::Y_to_ST2084(lms[1] / 100.f),
-        OTF::Y_to_ST2084(lms[2] / 100.f)); // map 10000 nits to 0-100
+    // from ICtCp white paper
+    constexpr Gamut HPE_LMS(
+        "HPE_LMS", Matrix3(0.3592f, 0.6976f, -0.0358f, -0.1922f, 1.1004f, 0.0755f, 0.0070f, 0.0749f, 0.8434f));
+    const Tristimulus lms = HPE_LMS.fromXYZ(xyz);
+    const Tristimulus pq  = Tristimulus(OTF::Y_to_ST2084(lms[0]), OTF::Y_to_ST2084(lms[1]), OTF::Y_to_ST2084(lms[2]));
     return Tristimulus((pq[0] + pq[1]) * 0.5f, (6610.f * pq[0] - 13613.f * pq[1] + 7003.f * pq[2]) / 4096.f,
-        (17933.f * pq[0] - 17390.f * pq[1] + 543.f * pq[2]) / 4096.f);
+        (17933.f * pq[0] - 17390.f * pq[1] - 543.f * pq[2]) / 4096.f);
 }
 
 static const Tristimulus ICtCp_to_XYZ(const Tristimulus &icc)
 {
-    const Tristimulus lms(OTF::ST2084_to_Y(icc[0] + 0.00860904f * icc[1] + 0.11103f * icc[2]) * 100.f,
-        OTF::ST2084_to_Y(icc[0] - 0.00860904f * icc[1] - 0.11103f * icc[2]) * 100.f,
-        OTF::ST2084_to_Y(icc[0] + 0.560031f * icc[1] - 0.320627f * icc[2]) * 100.f);
-    return LMS.toXYZ(lms);
+    // from ICtCp white paper
+    constexpr Gamut HPE_LMS(
+        "HPE_LMS", Matrix3(0.3592f, 0.6976f, -0.0358f, -0.1922f, 1.1004f, 0.0755f, 0.0070f, 0.0749f, 0.8434f));
+    const Tristimulus lms(OTF::ST2084_to_Y(icc[0] + 0.00860904f * icc[1] + 0.11103f * icc[2]),
+        OTF::ST2084_to_Y(icc[0] - 0.00860904f * icc[1] - 0.11103f * icc[2]),
+        OTF::ST2084_to_Y(icc[0] + 0.560031f * icc[1] - 0.320627f * icc[2]));
+    return HPE_LMS.toXYZ(lms);
 }
 
 // Color Differences
