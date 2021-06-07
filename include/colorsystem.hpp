@@ -1254,6 +1254,15 @@ class Spectrum
         }
         return Spectrum(s);
     }
+    static const Spectrum mul(const Spectrum &a, const float b)
+    {
+        spectrum s;
+        for (int i = 0; i < 400; i++)
+        {
+            s[i] = a[i] * b;
+        }
+        return Spectrum(s);
+    }
     static const Spectrum mul(const Spectrum &a, const Spectrum &b)
     {
         spectrum s;
@@ -1272,6 +1281,7 @@ class Spectrum
         }
         return Spectrum(s);
     }
+    const Spectrum         operator*(const float b) const { return mul(*this, b); }
     const Spectrum         operator*(const Spectrum &b) const { return mul(*this, b); }
     const Spectrum         operator+(const Spectrum &b) const { return add(*this, b); }
     static constexpr float sumHelper(const Spectrum &a, const int i)
