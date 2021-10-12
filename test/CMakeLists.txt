@@ -11,6 +11,7 @@ set (SOURCE_FILES colorsystem.cpp
                   macbeth.cpp
                   units.cpp
                   screen.cpp
+                  oklab.cpp
     )
 
 add_library (colortest_objs OBJECT ${SOURCE_FILES} ${HEADER_FILES})
