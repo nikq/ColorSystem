@@ -1205,9 +1205,9 @@ class Spectrum
         const int   index = (int)(count * (t - lo) / (hi - lo));
         const float l     = index * (hi - lo) / count;
         const float h     = (index + 1) * (hi - lo) / count;
-        return (index >= count)
-                   ? sample[count]
-                   : (index <= 0) ? sample[0] : lerp(sample[index], sample[index + 1], (t - l - lo) / (h - l));
+        return (index >= count) ? sample[count]
+               : (index <= 0)   ? sample[0]
+                                : lerp(sample[index], sample[index + 1], (t - l - lo) / (h - l));
     }
     constexpr float fetch(const float &lambda) const { return fetch(s_.data(), 400, 380.f, 779.f, lambda); }
 
@@ -1332,6 +1332,7 @@ static constexpr Gamut ACEScg("ACES cg", 0.713f, 0.293f, 0.165f, 0.830f, 0.128f,
 static constexpr Gamut ACES2065("ACES 2065", 0.73470f, 0.26530f, 0.f, 1.f, 0.0001f, -0.077f, 0.32168f, 0.33767f); // AP0
 static constexpr Gamut LMS("LMS",
     Matrix3(0.8951f, 0.2664f, -0.1614f, -0.7502f, 1.7135f, 0.0367f, 0.0389f, -0.0685f, 1.0296f)); // fromXYZ matrix.
+
 static constexpr Gamut XYZ("XYZ", Matrix3(1, 0, 0, 0, 1, 0, 0, 0, 1));
 
 // returns Gamut convert matrix
@@ -1369,6 +1370,55 @@ static const Tristimulus ICtCp_to_XYZ(const Tristimulus &icc)
         OTF::ST2084_to_Y(icc[0] - 0.00860904f * icc[1] - 0.11103f * icc[2]),
         OTF::ST2084_to_Y(icc[0] + 0.560031f * icc[1] - 0.320627f * icc[2]));
     return HPE_LMS.toXYZ(lms);
+}
+
+static const Tristimulus XYZ_to_OKLAB(const Tristimulus &xyz)
+{
+    // https://bottosson.github.io/posts/oklab/
+    constexpr auto m1  = Matrix3(0.8189330101f, 0.3618667424f, -0.1288597137f, -0.0329845436f, 0.9293118715f,
+        0.0361456387f, 0.0482003018f, 0.2643662691f, 0.6338517070f);
+    constexpr auto m2  = Matrix3(0.2104542553f, 0.7936177850f, -0.0040720468f, 1.9779984951f, -2.4285922050f,
+        0.4505937099f, 0.0259040371f, 0.7827717662f, -0.8086757660f);
+    constexpr auto m1i = m1.invert();
+    constexpr auto m2i = m2.invert();
+    printf("\n");
+    for (int i = 0; i < 9; i++)
+    {
+        printf("%f,", m1[i]);
+    }
+    printf("\n");
+    for (int i = 0; i < 9; i++)
+    {
+        printf("%f,", m2[i]);
+    }
+    printf("\n");
+    for (int i = 0; i < 9; i++)
+    {
+        printf("%f,", m1i[i]);
+    }
+    printf("\n");
+    for (int i = 0; i < 9; i++)
+    {
+        printf("%f,", m2i[i]);
+    }
+    printf("\n");
+
+    const Tristimulus lms = xyz.apply(m1);
+    const Tristimulus dash(cbrtf(lms[0]), cbrtf(lms[1]), cbrtf(lms[2]));
+     return dash.apply(m2);
+}
+
+static const Tristimulus OKLAB_to_XYZ(const Tristimulus &lab)
+{
+    constexpr auto m1  = Matrix3(0.8189330101f, 0.3618667424f, -0.1288597137f, -0.0329845436f, 0.9293118715f,
+        0.0361456387f, 0.0482003018f, 0.2643662691f, 0.6338517070f);
+    constexpr auto m2  = Matrix3(0.2104542553f, 0.7936177850f, -0.0040720468f, 1.9779984951f, -2.4285922050f,
+        0.4505937099f, 0.0259040371f, 0.7827717662f, -0.8086757660f);
+    constexpr auto m1i = m1.invert();
+    constexpr auto m2i = m2.invert();
+    const Tristimulus dash = lab.apply(m2i);
+    const Tristimulus lms(dash[0] * dash[0] * dash[0], dash[1] * dash[1] * dash[1], dash[2] * dash[2] * dash[2]);
+    return lms.apply(m1i);
 }
 
 // Color Differences
