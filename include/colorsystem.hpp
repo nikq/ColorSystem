@@ -567,6 +567,7 @@ class OTF
         SRGB,
         BT709,
         ST2084,
+        SLOG,
         SLOG2,
         SLOG3,
         HLG // Hybrid-log-gamma
@@ -651,6 +652,34 @@ class OTF
         return (C < 0.f) ? 0.f : ((C <= 0.5f) ? (4.f * C * C) : exp((C - c) / a) + b);
     }
 
+    // x:0-10.0 y:0-1
+    static const float Y_to_SLog(const float &x)
+    {
+        const auto xc = (x < 0) ? 0 : (x > 10 ? 10 : x);
+        const auto y  = (0.432699f * log10f(xc + 0.037584) + 0.616596) + 0.03;
+        return y;
+    }
+
+    // x:0-1.09, y:0-10
+    static const float SLog_to_Y(const float &x)
+    {
+        const auto y = powf(10.f, ((x - 0.616596f - 0.03f) / 0.432699f)) - 0.037584f;
+        return y;
+    }
+
+    static const float Y_to_SLog3(const float &x)
+    {
+        const auto y = x > 0.01125f ? (420.f + log10f((x + 0.01f) / (0.19f) * 261.5f))
+                                    : (x * (171.2102946929f - 95.f) / 0.01125f + 95.f);
+        return y / 1023.f;
+    }
+    static const float SLog3_to_Y(const float &x)
+    {
+        const auto y = (x > 171.2102946929f / 1023.f) ? powf(10.f, ((x * 1023.f - 420.f) / 261.5f)) * (0.19f) - 0.01f
+                                                      : (x * 1023.f - 95.f) * 0.01125 / (171.2102946929f - 95.f);
+        return y;
+    }
+
     static const float CV_to_IRE_SLog2(const float &cv)
     {
         const float BLACK = 64.f / 1024.f;
@@ -711,6 +740,10 @@ class OTF
             return Tristimulus(Y_to_ST2084(scene[0]), Y_to_ST2084(scene[1]), Y_to_ST2084(scene[2]));
         }
         break;
+        case SLOG: {
+            return Tristimulus(Y_to_SLog(scene[0]), Y_to_SLog(scene[1]), Y_to_SLog(scene[2]));
+        }
+        break;
         case SLOG2: {
             return Tristimulus(Y_to_SLog2(scene[0]), Y_to_SLog2(scene[1]), Y_to_SLog2(scene[2]));
         }
@@ -744,6 +777,9 @@ class OTF
         break;
         case ST2084: {
             return Tristimulus(ST2084_to_Y(screen[0]), ST2084_to_Y(screen[1]), ST2084_to_Y(screen[2]));
+        }
+        case SLOG: {
+            return Tristimulus(SLog_to_Y(screen[0]), SLog_to_Y(screen[1]), SLog_to_Y(screen[2]));
         }
         case SLOG2: {
             return Tristimulus(SLog2_to_Y(screen[0]), SLog2_to_Y(screen[1]), SLog2_to_Y(screen[2]));
