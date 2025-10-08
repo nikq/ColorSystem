@@ -568,6 +568,7 @@ class OTF
         BT709,
         ST2084,
         SLOG2,
+        SLOG3,
         HLG // Hybrid-log-gamma
     } TYPE;
 
@@ -676,6 +677,20 @@ class OTF
                             : (x - 0.030001222851889303f) / 3.53881278538813f;
         return (y > 0.f) ? y : 0.f;
     }
+    static const float Y_to_SLog3(const float &x)
+    {
+        const auto y = x > 0.01125f ? (420.f + log10f((x + 0.01f) / (0.19f)) * 261.5f)
+                                    : (x * (171.2102946929f - 95.f) / 0.01125f + 95.f);
+        return y / 1023.f;
+    }
+    static const float SLog3_to_Y(const float &x)
+    {
+        const auto y = (x > 171.2102946929f / 1023.f) ? powf(10.f, ((x * 1023.f - 420.f) / 261.5f)) * (0.19f) - 0.01f
+                                                      : (x * 1023.f - 95.f) * 0.01125 / (171.2102946929f - 95.f);
+        return y;
+    }
+
+
     static const Tristimulus toScreen(TYPE type, const Tristimulus &scene, const float g = 1.f)
     {
         switch (type)
@@ -700,6 +715,9 @@ class OTF
             return Tristimulus(Y_to_SLog2(scene[0]), Y_to_SLog2(scene[1]), Y_to_SLog2(scene[2]));
         }
         break;
+        case SLOG3: {
+            return Tristimulus(Y_to_SLog3(scene[0]), Y_to_SLog3(scene[1]), Y_to_SLog3(scene[2]));
+        }break;
         case HLG: {
             return Tristimulus(Y_to_HLG(scene[0]), Y_to_HLG(scene[1]), Y_to_HLG(scene[2]));
         }
@@ -729,6 +747,9 @@ class OTF
         }
         case SLOG2: {
             return Tristimulus(SLog2_to_Y(screen[0]), SLog2_to_Y(screen[1]), SLog2_to_Y(screen[2]));
+        }
+        case SLOG3: {
+            return Tristimulus(SLog3_to_Y(screen[0]), SLog3_to_Y(screen[1]), SLog3_to_Y(screen[2]));
         }
         case HLG: {
             return Tristimulus(HLG_to_Y(screen[0]), HLG_to_Y(screen[1]), HLG_to_Y(screen[2]));
@@ -1223,7 +1244,7 @@ class Spectrum
     const spectrum &s(void) const { return s_; }
 
     static const double planck(const double &T, // temperature (Kelvin)
-        const double &                       l)                        // wavelength (meter)
+        const double                        &l)                        // wavelength (meter)
     {
         static const double h    = 6.62606896e-34; // Plank constant         J s
         static const double c    = 2.99792458e+8;  // Speed of light         m/s
@@ -1375,47 +1396,23 @@ static const Tristimulus ICtCp_to_XYZ(const Tristimulus &icc)
 static const Tristimulus XYZ_to_OKLAB(const Tristimulus &xyz)
 {
     // https://bottosson.github.io/posts/oklab/
-    constexpr auto m1  = Matrix3(0.8189330101f, 0.3618667424f, -0.1288597137f, -0.0329845436f, 0.9293118715f,
-        0.0361456387f, 0.0482003018f, 0.2643662691f, 0.6338517070f);
-    constexpr auto m2  = Matrix3(0.2104542553f, 0.7936177850f, -0.0040720468f, 1.9779984951f, -2.4285922050f,
-        0.4505937099f, 0.0259040371f, 0.7827717662f, -0.8086757660f);
-    constexpr auto m1i = m1.invert();
-    constexpr auto m2i = m2.invert();
-    printf("\n");
-    for (int i = 0; i < 9; i++)
-    {
-        printf("%f,", m1[i]);
-    }
-    printf("\n");
-    for (int i = 0; i < 9; i++)
-    {
-        printf("%f,", m2[i]);
-    }
-    printf("\n");
-    for (int i = 0; i < 9; i++)
-    {
-        printf("%f,", m1i[i]);
-    }
-    printf("\n");
-    for (int i = 0; i < 9; i++)
-    {
-        printf("%f,", m2i[i]);
-    }
-    printf("\n");
-
+    constexpr auto    m1  = Matrix3(0.8189330101f, 0.3618667424f, -0.1288597137f, -0.0329845436f, 0.9293118715f,
+            0.0361456387f, 0.0482003018f, 0.2643662691f, 0.6338517070f);
+    constexpr auto    m2  = Matrix3(0.2104542553f, 0.7936177850f, -0.0040720468f, 1.9779984951f, -2.4285922050f,
+            0.4505937099f, 0.0259040371f, 0.7827717662f, -0.8086757660f);
     const Tristimulus lms = xyz.apply(m1);
     const Tristimulus dash(cbrtf(lms[0]), cbrtf(lms[1]), cbrtf(lms[2]));
-     return dash.apply(m2);
+    return dash.apply(m2);
 }
 
 static const Tristimulus OKLAB_to_XYZ(const Tristimulus &lab)
 {
-    constexpr auto m1  = Matrix3(0.8189330101f, 0.3618667424f, -0.1288597137f, -0.0329845436f, 0.9293118715f,
-        0.0361456387f, 0.0482003018f, 0.2643662691f, 0.6338517070f);
-    constexpr auto m2  = Matrix3(0.2104542553f, 0.7936177850f, -0.0040720468f, 1.9779984951f, -2.4285922050f,
-        0.4505937099f, 0.0259040371f, 0.7827717662f, -0.8086757660f);
-    constexpr auto m1i = m1.invert();
-    constexpr auto m2i = m2.invert();
+    constexpr auto    m1   = Matrix3(0.8189330101f, 0.3618667424f, -0.1288597137f, -0.0329845436f, 0.9293118715f,
+             0.0361456387f, 0.0482003018f, 0.2643662691f, 0.6338517070f);
+    constexpr auto    m2   = Matrix3(0.2104542553f, 0.7936177850f, -0.0040720468f, 1.9779984951f, -2.4285922050f,
+             0.4505937099f, 0.0259040371f, 0.7827717662f, -0.8086757660f);
+    constexpr auto    m1i  = m1.invert();
+    constexpr auto    m2i  = m2.invert();
     const Tristimulus dash = lab.apply(m2i);
     const Tristimulus lms(dash[0] * dash[0] * dash[0], dash[1] * dash[1] * dash[1], dash[2] * dash[2] * dash[2]);
     return lms.apply(m1i);
@@ -7387,7 +7384,7 @@ namespace SOLVER
         }
         const int           rows(void) { return (int)(v_.size()); }
         const int           cols(void) { return (int)(v_.size() ? v_[0].size() : 0); }
-        float &             v(int r, int c) { return v_[r][c]; }
+        float              &v(int r, int c) { return v_[r][c]; }
         std::vector<float> &operator[](int r) { return v_[r]; }
     };
 
